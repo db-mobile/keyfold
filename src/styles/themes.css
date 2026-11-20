@@ -1,0 +1,64 @@
+/* Light is the default; theme.ts resolves "system" and sets data-theme to light or dark. */
+:root {
+  color-scheme: light;
+}
+
+:root[data-accent="blue"] { --accent-color: #0461be; }
+:root[data-accent="teal"] { --accent-color: #007184; }
+:root[data-accent="green"] { --accent-color: #15772e; }
+:root[data-accent="yellow"] { --accent-color: #905400; }
+:root[data-accent="orange"] { --accent-color: #b62200; }
+:root[data-accent="red"] { --accent-color: #c00023; }
+:root[data-accent="pink"] { --accent-color: #a2326c; }
+:root[data-accent="purple"] { --accent-color: #8939a4; }
+:root[data-accent="indigo"] { --accent-color: #3a41a8; }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --window-bg-color: #242424;
+  --window-fg-color: #ffffff;
+  --view-bg-color: #1e1e1e;
+  --view-fg-color: #ffffff;
+  --headerbar-bg-color: #303030;
+  --headerbar-fg-color: #ffffff;
+  --headerbar-shade-color: rgb(0 0 6 / 36%);
+  --sidebar-bg-color: #303030;
+  --sidebar-fg-color: #ffffff;
+  --sidebar-shade-color: rgb(0 0 6 / 25%);
+  --card-bg-color: rgb(255 255 255 / 8%);
+  --card-fg-color: #ffffff;
+  --card-shade-color: rgb(0 0 6 / 36%);
+  --dialog-bg-color: #383838;
+  --dialog-fg-color: #ffffff;
+  --popover-bg-color: #383838;
+  --popover-fg-color: #ffffff;
+  --popover-shade-color: rgb(0 0 6 / 25%);
+  /* Fills lighten on dark surfaces, as in libadwaita (Resonance darkens here). */
+  --shade-color: rgb(255 255 255 / 8%);
+  --scrim-color: rgb(0 0 6 / 45%);
+  --border-color: rgb(255 255 255 / 15%);
+
+  --destructive-bg-color: #c01c28;
+  --destructive-fg-color: #ffffff;
+  --destructive-color: #ff938c;
+  --success-bg-color: #26a269;
+  --success-color: #78e9ab;
+  --warning-color: #ffc252;
+  --error-color: #ff938c;
+
+  --accent-color: #81d0ff;
+
+  --switcher-active-bg: rgb(255 255 255 / 12%);
+  --switcher-active-shadow: none;
+}
+
+:root[data-theme="dark"][data-accent="blue"] { --accent-color: #81d0ff; }
+:root[data-theme="dark"][data-accent="teal"] { --accent-color: #7bdff4; }
+:root[data-theme="dark"][data-accent="green"] { --accent-color: #78e9ab; }
+:root[data-theme="dark"][data-accent="yellow"] { --accent-color: #ffc252; }
+:root[data-theme="dark"][data-accent="orange"] { --accent-color: #ff9c5b; }
+:root[data-theme="dark"][data-accent="red"] { --accent-color: #ff888c; }
+:root[data-theme="dark"][data-accent="pink"] { --accent-color: #ff9bb9; }
+:root[data-theme="dark"][data-accent="purple"] { --accent-color: #dc8add; }
+:root[data-theme="dark"][data-accent="indigo"] { --accent-color: #a8b0ff; }

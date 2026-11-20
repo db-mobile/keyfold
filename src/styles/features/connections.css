@@ -1,0 +1,98 @@
+.headerbar .headerbar-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.headerbar {
+  position: relative;
+}
+
+.connections {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-6) var(--space-7);
+}
+
+/* AdwClamp: content keeps a readable width however wide the window is. */
+.clamp {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.connections .list-group-title:first-child {
+  margin-top: var(--space-2);
+}
+
+/* Rows hold popover menus, so the list must not clip. */
+.connections .boxed-list {
+  overflow: visible;
+}
+
+.connections .row .title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.connections .row .title > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+
+.connections .row .suffix {
+  gap: var(--space-3);
+}
+
+.connections-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background-color: color-mix(in srgb, var(--error-color) 8%, transparent);
+  color: var(--error-color);
+  overflow-wrap: anywhere;
+}
+
+.connections-error > .icon {
+  margin-top: 2px;
+}
+
+.quick-connect {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.quick-connect .boxed-list {
+  width: 100%;
+}
+
+.quick-connect .row .url {
+  flex: 1.6;
+  min-width: 0;
+}
+
+.quick-connect .row select {
+  max-width: 280px;
+}
+
+/* The fields of the SSH tunnel stay in place while it is switched off. */
+.ssh-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ssh-fields:disabled {
+  opacity: var(--dim-opacity);
+}

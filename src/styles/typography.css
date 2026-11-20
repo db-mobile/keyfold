@@ -1,0 +1,29 @@
+.heading {
+  font-size: var(--font-size-heading);
+  font-weight: 700;
+}
+
+.section-eyebrow {
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: var(--dim-opacity);
+}
+
+.caption {
+  font-size: var(--font-size-caption);
+}
+
+.dim-label {
+  opacity: var(--dim-opacity);
+}
+
+.monospace {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}

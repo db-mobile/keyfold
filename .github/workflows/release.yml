@@ -1,0 +1,133 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  # the same lint, four-server test matrix and shell build that guard main
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  # the tag must be the version in the tree; on its own runner because the
+  # script needs Python 3.11 (tomllib), which the 22.04 build runners lack
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check that the tag matches the version
+        run: python3 scripts/check-version.py --tag "$GITHUB_REF_NAME"
+
+  build-linux:
+    name: build (linux ${{ matrix.arch }})
+    needs: [checks, version]
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
+    env:
+      CARGO_TERM_COLOR: always
+      # the workspace profile keeps debug info for local profiling; the
+      # packages ship without it
+      CARGO_PROFILE_RELEASE_STRIP: 'true'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      # builds the frontend (beforeBuildCommand) and the bundles named in
+      # bundle.targets of src-tauri/tauri.conf.json
+      - name: Build Tauri application
+        run: npm run build:tauri
+      - name: Prepare Linux artifacts
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p release-artifacts
+          cp target/release/bundle/appimage/*.AppImage "release-artifacts/keyfold_${VERSION}_${ARCH}.AppImage"
+          cp target/release/bundle/deb/*.deb "release-artifacts/keyfold_${VERSION}_${ARCH}.deb"
+          ls -l release-artifacts
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: [build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+      - name: List downloaded artifacts
+        run: find artifacts -type f
+      - name: Write release notes
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          VERSION="${TAG#v}"
+          BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          PREVIOUS_TAG="$(git tag --sort=-v:refname | grep -vx "$TAG" | head -n 1 || true)"
+          {
+            echo "## What's Changed"
+            echo
+            if [ -n "$PREVIOUS_TAG" ]; then
+              git log "${PREVIOUS_TAG}..${TAG}" --pretty=format:"- %s (%h)" --no-merges
+            else
+              git log "$TAG" --pretty=format:"- %s (%h)" --no-merges | head -n 20
+            fi
+            echo
+            echo
+            echo "---"
+            echo
+            echo "## Downloads"
+            echo
+            echo "### Linux"
+            echo "- [AppImage](${BASE_URL}/keyfold_${VERSION}_amd64.AppImage)"
+            echo "- [AppImage (arm64)](${BASE_URL}/keyfold_${VERSION}_arm64.AppImage)"
+            echo "- [Debian Package](${BASE_URL}/keyfold_${VERSION}_amd64.deb)"
+            echo "- [Debian Package (arm64)](${BASE_URL}/keyfold_${VERSION}_arm64.deb)"
+            if [ -n "$PREVIOUS_TAG" ]; then
+              echo
+              echo "---"
+              echo
+              echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${TAG}"
+            fi
+          } > release-notes.md
+          cat release-notes.md
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Release $GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            artifacts/release-linux-amd64/*.AppImage \
+            artifacts/release-linux-amd64/*.deb \
+            artifacts/release-linux-arm64/*.AppImage \
+            artifacts/release-linux-arm64/*.deb

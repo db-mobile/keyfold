@@ -1,0 +1,15 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Keyfold app icon, the master for every generated size.
+       Regenerate the bitmaps with scripts/regenerate-icons.sh. -->
+  <rect x="64" y="64" width="896" height="896" rx="192" fill="#1d2026" />
+
+  <g fill="#4c85f2">
+    <!-- shaft, rounded at the upper corner of the tip -->
+    <path d="M500 430 H780 A40 40 0 0 1 820 470 V510 H500 Z" />
+    <!-- the two bits -->
+    <rect x="700" y="500" width="60" height="100" />
+    <rect x="780" y="500" width="40" height="140" />
+  </g>
+  <!-- bow -->
+  <circle cx="390" cy="470" r="135" fill="none" stroke="#4c85f2" stroke-width="70" />
+</svg>

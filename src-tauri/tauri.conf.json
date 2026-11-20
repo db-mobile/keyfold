@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Keyfold",
+  "version": "0.1.0",
+  "identifier": "dev.keyfold.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Keyfold",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 760,
+        "minHeight": 480
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "deb",
+      "appimage"
+    ],
+    "icon": [
+      "../assets/icons/icon_32x32.png",
+      "../assets/icons/icon_128x128.png",
+      "../assets/icons/icon_256x256.png",
+      "../assets/icons/icon.icns",
+      "../assets/icons/icon.ico"
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "A fast desktop client for Redis and Valkey",
+    "longDescription": "Keyfold is a desktop client for Redis and Valkey built for databases with millions of keys. It indexes the keyspace once and folds generated ids into a structure you can read.",
+    "publisher": "Dennis Blümer",
+    "copyright": "Copyright (c) 2026 Dennis Blümer",
+    "license": "MIT",
+    "homepage": "https://github.com/db-mobile/keyfold",
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  }
+}

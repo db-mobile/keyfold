@@ -36,4 +36,4 @@ step two.
 
 - Thin, verifiable slices; each slice ends with tests passing on the four-server matrix
 - Design questions are answered as an assessment first; the concept is edited only when asked
-- Product name must not contain "Redis" (trademark); the project folder name is incidental
+- Working product name: Keyfold. It must not contain "Redis" (trademark); the project folder name is incidental

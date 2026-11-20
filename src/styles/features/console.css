@@ -1,0 +1,73 @@
+/* The command console: a panel above the status bar (CONCEPT section 8). */
+.console {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--console-height, 240px);
+  min-height: 0;
+  background-color: var(--view-bg-color);
+}
+
+.console-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+}
+
+.console-inner {
+  position: relative;
+  width: 100%;
+}
+
+.console-hint {
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+}
+
+.console-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--value-row-height);
+  line-height: var(--value-row-height);
+  padding: 0 var(--space-4);
+  white-space: pre;
+  user-select: text;
+}
+
+.console-line.cmd {
+  font-weight: 700;
+}
+
+.console-line.err {
+  color: var(--error-color);
+}
+
+.console-line.note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  opacity: var(--dim-opacity);
+}
+
+.console-input {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  border-top: 1px solid var(--border-color);
+}
+
+.console-input .console-prompt {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+.console-input input {
+  flex: 1;
+  min-width: 0;
+}

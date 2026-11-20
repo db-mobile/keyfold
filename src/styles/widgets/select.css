@@ -1,0 +1,56 @@
+select.select,
+select.select-base,
+.form-select,
+.language-selector {
+  appearance: none;
+  min-height: var(--control-height);
+  padding: 0 calc(var(--space-4) + var(--icon-size)) 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-small);
+  background-color: var(--shade-color);
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+select.select:hover,
+select.select-base:hover,
+.form-select:hover,
+.language-selector:hover {
+  background-color: color-mix(in srgb, currentColor 15%, var(--shade-color));
+}
+
+.select-wrap,
+.select-wrapper,
+.language-selector-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select-wrap > .select-arrow,
+.select-wrapper > .select-arrow,
+.language-selector-container > .select-arrow {
+  position: absolute;
+  right: var(--space-2);
+  pointer-events: none;
+  opacity: var(--dim-opacity);
+}
+
+.form-group > .select-wrap,
+.form-group > .select-wrapper {
+  display: flex;
+}
+
+.form-group > .select-wrap > select,
+.form-group > .select-wrapper > select {
+  width: 100%;
+}
+
+select.select.compact,
+select.select-base.compact,
+.language-selector {
+  min-height: var(--control-height-small);
+  font-size: var(--font-size-small);
+}

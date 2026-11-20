@@ -1,0 +1,170 @@
+.button,
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-small);
+  background-color: var(--shade-color);
+  color: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast);
+}
+
+.button:hover,
+.btn:hover {
+  background-color: color-mix(in srgb, currentColor 15%, var(--shade-color));
+}
+
+.button:active,
+.btn:active {
+  background-color: color-mix(in srgb, currentColor 25%, var(--shade-color));
+}
+
+.button.suggested-action,
+.btn-primary {
+  background-color: var(--accent-action-bg-color);
+  color: var(--accent-fg-color);
+}
+
+.button.suggested-action:hover,
+.btn-primary:hover {
+  background-color: color-mix(in srgb, var(--accent-action-bg-color) 90%, #000000);
+}
+
+.button.suggested-action:active,
+.btn-primary:active {
+  background-color: color-mix(in srgb, var(--accent-action-bg-color) 80%, #000000);
+}
+
+.button.destructive-action,
+.btn-danger {
+  background-color: var(--destructive-bg-color);
+  color: var(--destructive-fg-color);
+}
+
+.button.destructive-action:hover,
+.btn-danger:hover {
+  background-color: color-mix(in srgb, var(--destructive-bg-color) 90%, #000000);
+}
+
+.button.destructive-action:active,
+.btn-danger:active {
+  background-color: color-mix(in srgb, var(--destructive-bg-color) 80%, #000000);
+}
+
+:root[data-accent="yellow"] :is(.button.suggested-action, .btn-primary):hover {
+  background-color: color-mix(in srgb, var(--accent-action-bg-color) 90%, #ffffff);
+}
+
+:root[data-accent="yellow"] :is(.button.suggested-action, .btn-primary):active {
+  background-color: color-mix(in srgb, var(--accent-action-bg-color) 80%, #ffffff);
+}
+
+.btn-secondary {
+  background-color: var(--shade-color);
+}
+
+.button.flat {
+  background-color: transparent;
+}
+
+.button.flat:hover {
+  background-color: var(--shade-color);
+}
+
+.button.flat:active,
+.button.flat.active {
+  background-color: color-mix(in srgb, currentColor 15%, var(--shade-color));
+}
+
+.button.small,
+.btn-sm {
+  min-height: var(--control-height-small);
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-small);
+}
+
+.button.image-button {
+  padding: 0;
+  width: var(--control-height);
+  min-width: var(--control-height);
+  flex-shrink: 0;
+}
+
+.btn-icon,
+.toast__close,
+.dialog-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-small);
+  height: var(--control-height-small);
+  min-height: var(--control-height-small);
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: var(--radius-small);
+  background-color: transparent;
+  color: inherit;
+  opacity: var(--dim-opacity);
+  transition: background-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.btn-icon:hover,
+.btn-icon:focus-visible,
+.toast__close:is(:hover, :focus-visible) {
+  background-color: var(--shade-color);
+  opacity: 1;
+}
+
+.btn-xs {
+  min-height: var(--control-height-embedded);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-caption);
+}
+
+.linked {
+  display: inline-flex;
+}
+
+.linked > .button,
+.linked > .btn,
+.linked > input,
+.linked > select {
+  border-radius: 0;
+}
+
+.linked > :first-child {
+  border-top-left-radius: var(--radius-small);
+  border-bottom-left-radius: var(--radius-small);
+}
+
+.linked > :last-child {
+  border-top-right-radius: var(--radius-small);
+  border-bottom-right-radius: var(--radius-small);
+}
+
+.linked > * + * {
+  margin-left: -1px;
+}
+
+.button.image-button.small {
+  width: var(--control-height-small);
+  min-width: var(--control-height-small);
+}
+
+/* Keep action glyphs consistent without resizing disclosure indicators. */
+
+:is(button, summary) > :is(.icon-chevron-down, .icon-chevron-right, .icon-chevron-left) {
+  width: 12px;
+  height: 12px;
+}
+
+:where(.button, .btn, .btn-icon, .dialog-close-btn, .toast__close) > .icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}

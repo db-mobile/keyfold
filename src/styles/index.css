@@ -1,0 +1,37 @@
+@import "./tokens.css";
+@import "./themes.css";
+@import "./reset.css";
+@import "./base.css";
+@import "./typography.css";
+@import "./icons.css";
+
+@import "./widgets/button.css";
+@import "./widgets/entry.css";
+@import "./widgets/form.css";
+@import "./widgets/checkbox-radio.css";
+@import "./widgets/switch.css";
+@import "./widgets/select.css";
+@import "./widgets/boxed-list.css";
+@import "./widgets/view-switcher.css";
+@import "./widgets/toolbar.css";
+@import "./widgets/popover.css";
+@import "./widgets/dialog.css";
+@import "./widgets/toast.css";
+@import "./widgets/badge.css";
+@import "./widgets/spinner.css";
+@import "./widgets/statuspage.css";
+@import "./widgets/banner.css";
+@import "./widgets/progress.css";
+
+@import "./layout/shell.css";
+@import "./layout/sidebar.css";
+@import "./layout/panes.css";
+
+@import "./features/headerbar.css";
+@import "./features/tree.css";
+@import "./features/keylist.css";
+@import "./features/value.css";
+@import "./features/connections.css";
+@import "./features/palette.css";
+@import "./features/console.css";
+@import "./features/preferences.css";

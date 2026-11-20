@@ -1,0 +1,44 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  background-color: var(--shade-color);
+}
+
+.badge.success {
+  background-color: color-mix(in srgb, var(--success-color) 8%, transparent);
+  color: var(--success-color);
+}
+
+.badge.warning {
+  background-color: color-mix(in srgb, var(--warning-color) 8%, transparent);
+  color: var(--warning-color);
+}
+
+.badge.error {
+  background-color: color-mix(in srgb, var(--error-color) 8%, transparent);
+  color: var(--error-color);
+}
+
+.badge.accent {
+  background-color: color-mix(in srgb, var(--accent-color) 8%, transparent);
+  color: var(--accent-color);
+}
+
+
+/* A small marker beside a name in a dense row, for example "binary". */
+.badge.mark {
+  flex: none;
+  padding: 0 var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  opacity: var(--dim-opacity);
+}

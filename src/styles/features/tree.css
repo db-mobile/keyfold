@@ -1,0 +1,141 @@
+.tree {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree .scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.tree .inner {
+  position: relative;
+  width: 100%;
+}
+
+.tree .t {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--tree-row-height);
+  padding-right: var(--space-3);
+  border-radius: var(--radius-small);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+.tree .t:hover {
+  background-color: var(--shade-color);
+}
+
+.tree .t.selected {
+  background-color: var(--selection-bg-color);
+}
+
+.tree .t .tw {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 16px;
+  opacity: var(--dim-opacity);
+}
+
+.tree .t .tw > .icon {
+  transition: transform var(--transition-fast);
+}
+
+.tree .t .tw.open > .icon {
+  transform: rotate(90deg);
+}
+
+.tree .t .seg {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree .t .seg:not(.leaf):not(.label):not(.dim) {
+  font-weight: 600;
+}
+
+.tree .t .also-key {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--accent-color);
+  vertical-align: middle;
+}
+
+.tree .t .cnt {
+  margin-left: auto;
+  flex: none;
+  padding-left: var(--space-2);
+  font-size: var(--font-size-caption);
+  opacity: var(--dim-opacity);
+}
+
+.tree .t .dim {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: var(--dim-opacity);
+}
+
+.tree .t .more {
+  color: var(--accent-color);
+}
+
+.tree .t.placeholder .seg {
+  opacity: 0.3;
+}
+
+/* A folded id level reads as a pattern, not as one more segment. */
+.tree .t.fold .label {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--switcher-button-radius);
+  background-color: color-mix(in srgb, var(--accent-color) 12%, transparent);
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+.tree .t.summary .seg {
+  font-weight: 400;
+}
+
+.tree .t input.filter {
+  flex: 1;
+  min-width: 60px;
+  min-height: 0;
+  height: calc(var(--tree-row-height) - 4px);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-caption);
+}
+
+.select-wrap.flat > select.select {
+  background-color: transparent;
+  font-weight: 400;
+}
+
+.select-wrap.flat > select.select:hover {
+  background-color: var(--shade-color);
+}
+
+/* On demand: a subtree the index knows only in part. */
+.tree .t.uncovered .cnt {
+  font-style: italic;
+}

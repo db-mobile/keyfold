@@ -10,7 +10,7 @@ dist/
 
 # Tauri
 src-tauri/target/
-src-tauri/gen/schemas/
+src-tauri/gen/
 
 # Local indexes, test databases, scratch
 *.sqlite

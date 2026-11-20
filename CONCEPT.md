@@ -174,7 +174,8 @@ Three kinds of data, three homes, chosen by what each one is:
 |---|---|---|
 | Connection profiles | Tauri app data dir (`~/.local/share/<bundle-id>` on Linux, equivalents on macOS and Windows) | Small, user-authored, must survive |
 | Key indexes | Tauri app cache dir (`~/.cache/<bundle-id>` on Linux), folder per connection id, one SQLite file per logical db | Large and rebuildable. Cache dirs are excluded from backups on macOS and treated as deletable by cleanup tools. OS purging under storage pressure costs a rescan, which is the right trade for gigabyte files |
-| Credentials | OS keychain via a Tauri plugin | Never on disk in either directory |
+| Credentials | OS keychain via a Tauri plugin | Never on disk in either directory. A connection reached through an SSH bastion has a second entry for the SSH password or key passphrase |
+| SSH host keys the user accepted | `known_hosts` in the app data dir | The user's own `~/.ssh/known_hosts` is read, never written |
 
 Rules:
 
@@ -230,8 +231,11 @@ the UI.
   that subtree becomes exact again. Shown honestly in the UI as "server-side
   cost: full walk".
 
-Never used: `KEYS`, `DEBUG`, `MONITOR` (the last only on explicit user request in
-a separate tool).
+Never used by the browser: `KEYS`, `DEBUG`, `MONITOR`. The command console
+(section 8) is the separate tool for what the user asks for explicitly: it
+sends what the user types, under the user's own ACL, and asks before `KEYS`
+or `DEBUG`. `MONITOR` and pub/sub streams are a later tool; the console
+refuses them.
 
 ## 5. Browsing UX
 
@@ -438,6 +442,31 @@ server CPU and requires configuration. When on, the staleness badge reads
   write a matching ACL (`SCAN`, `TYPE`, `TTL`, `MEMORY`, `OBJECT`, `DBSIZE`,
   `INFO`, `CLUSTER`, the per-type read commands). The app degrades cleanly when
   a command is denied.
+- **Command console** (amended 2026-11-22). A panel where the user types a
+  command and reads the reply. Its rules:
+  - It has its own connection. Nothing typed there can change the state of
+    the connections the browser uses.
+  - It runs commands that answer once. Commands that change connection
+    state (`SELECT`, `MULTI`, `AUTH`, `HELLO`, `RESET`, `CLIENT REPLY`, ...),
+    that block, or that stream (`SUBSCRIBE`, `MONITOR`) are refused with the
+    reason.
+  - What a command is comes from the server (`COMMAND INFO`: flags and ACL
+    categories), never from a version string. Without that answer every
+    command counts as a write.
+  - Prod confirms every command that is not known to be read-only. `KEYS`
+    and everything the server calls dangerous ask on every tag and say what
+    they cost. `FLUSHALL`, `FLUSHDB`, `SHUTDOWN`, `SWAPDB` and `DEBUG`
+    require typing the connection's name. The backend enforces all of it.
+  - The index follows: the keys a command touched (`COMMAND GETKEYS`) are
+    read again and written through. A write that names no keys marks the
+    index as possibly stale and offers a rescan.
+  - Replies are cut to a bounded number of lines before they reach the
+    webview, with every cut marked.
+- **SSH tunnels** (amended 2026-11-22). A stored connection can name an SSH
+  bastion. The host key is verified against the user's `known_hosts` and the
+  app's own; an unknown key stops the connect and shows its fingerprint, a
+  changed key is refused. The SSH password or key passphrase lives in the OS
+  keychain like the server password.
 
 ## 9. Performance targets (acceptance criteria)
 
@@ -467,7 +496,8 @@ Measured on a 10M-key database, 40-byte average key, local network:
 ┌──────────────┴─────────────────────────┐
 │ Rust backend                           │
 │  connection manager  (redis crate,     │
-│    one conn per node, sentinel, TLS)   │
+│    one conn per node, sentinel, TLS,   │
+│    optional SSH tunnel)                │
 │  capability layer    (HELLO/INFO +     │
 │    COMMAND probing, type registry)     │
 │  scan engine         (tokio task, one  │
@@ -515,6 +545,7 @@ fold_stats(conn, db, path)                           -> FoldSummary
 key_meta(conn, db, names[])                          -> [Meta]    (pipelined)
 value_page(conn, db, name, cursor, limit, filter)    -> ValuePage
 mutate(conn, db, op)                                 -> ()        (write-through)
+console_run(conn, line, node, confirmation)          -> Reply     (bounded lines)
 ```
 
 ## 11. Decisions
@@ -639,6 +670,56 @@ section 3.4. Rationale:
 - A configurable cache root and a schema version are cheap now and painful to
   retrofit.
 
+**Command console: a bottom panel, request/reply only, on its own
+connection** (decided 2026-11-22). Rules in section 8. Rationale:
+
+- A client without a way to run a command is not used daily, however good
+  its browser is; section 4 already reserved "a separate tool" for what the
+  browser itself never sends.
+- A typed `SELECT`, `MULTI` or `CLIENT REPLY OFF` on a connection the
+  browser shares would corrupt the index or desynchronise replies. A
+  dedicated connection makes that impossible instead of unlikely.
+- Refusing stateful, blocking and streaming commands keeps the first
+  version a pure request/reply tool. Transactions, `SELECT` with tracked
+  state, `MONITOR` and pub/sub are separate tools to design later.
+- The ACL documentation stays truthful: the browser's own commands are the
+  listed ones, the console sends the user's commands under the user's ACL,
+  through one builder that says so.
+- Reading the touched keys again after a write keeps "the tree never shows a
+  key the user just deleted" true for the console as well.
+
+Conventions:
+
+- The console's helpers (`COMMAND INFO`, `COMMAND GETKEYS`) are ordinary
+  listed browser commands.
+- On a cluster a command with keys goes to the owner of their slot, and the
+  keys must share one; a command without keys goes to the node the user
+  chose. There is no fan-out.
+- History is kept in memory for the session only; typed lines can hold
+  values.
+
+**SSH tunnels: in-process, forwarding on demand** (decided 2026-11-22).
+Rationale:
+
+- Many production servers are reachable only from a bastion; without a
+  tunnel the tool cannot be pointed at the databases it was built for.
+- Cluster nodes, redirect targets and replicas are addresses the server
+  announces, usually private ones. One fixed forwarded port would work for a
+  standalone primary and nothing else, so the tunnel forwards any host and
+  port on demand and names are resolved on the bastion.
+- An SSH client inside the app behaves the same on Linux, macOS and Windows
+  with nothing installed, and lets the app ask for a passphrase and show a
+  host key. The cost is accepted: `~/.ssh/config` and `ProxyJump` are not
+  read in the first version.
+
+Conventions:
+
+- Every connection of a profile goes through the same tunnel, at the one
+  place where the connection manager connects; the logical node address
+  stays the announced one.
+- The tunnel is a property of a stored connection. Quick connect by URL has
+  none.
+
 ### Still open
 
 None. All concept-level decisions are closed; remaining choices are
@@ -659,3 +740,7 @@ implementation details to be settled in the first build slices.
 6. Search (glob, substring, regex), jump-to-key.
 7. Write-through mutations, pattern delete, safety confirmations.
 8. Cluster, replica preference, gentleness profiles, keyspace notifications.
+9. Command console (amended 2026-11-22): tokenizer, classification, routing
+   and index follow-up in the backend and the CLI first, then the panel.
+10. SSH tunnels (amended 2026-11-22): the tunnel and a test bastion in the
+    backend and the CLI first, then stored profiles, secrets and the editor.

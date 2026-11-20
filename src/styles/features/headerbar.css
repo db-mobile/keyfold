@@ -1,0 +1,76 @@
+.headerbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  min-height: var(--headerbar-height);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--headerbar-bg-color);
+  color: var(--headerbar-fg-color);
+  box-shadow: inset 0 -1px var(--headerbar-shade-color);
+  white-space: nowrap;
+}
+
+/* The one loud element: a production connection is marked across the whole window. */
+.headerbar[data-env="prod"] {
+  box-shadow: inset 0 -1px var(--headerbar-shade-color), inset 0 2px var(--env-prod-bg-color);
+}
+
+.headerbar .conn-button {
+  min-width: 0;
+  max-width: 360px;
+}
+
+.headerbar .conn-button .conn-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+
+.headerbar .headerbar-facts {
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+  opacity: var(--dim-opacity);
+}
+
+.headerbar .live-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.badge.env-prod {
+  background-color: var(--env-prod-bg-color);
+  color: var(--env-prod-fg-color);
+}
+
+.badge.env-staging {
+  background-color: color-mix(in srgb, var(--env-staging-color) 14%, transparent);
+  color: var(--env-staging-color);
+}
+
+.conn-popover {
+  width: 380px;
+  padding: var(--space-4);
+}
+
+.conn-popover .row {
+  min-height: 40px;
+}
+
+.conn-popover .node-list {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-caption);
+  white-space: pre-line;
+  opacity: 1;
+}
+
+/* The console's own button: an icon and its name, held down while the panel shows. */
+.headerbar .console-button {
+  gap: var(--space-2);
+}

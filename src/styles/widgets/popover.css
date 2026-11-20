@@ -1,0 +1,118 @@
+.menu-item:active {
+  background-color: color-mix(in srgb, currentColor 12%, var(--shade-color));
+}
+
+.menu-item .icon {
+  opacity: var(--dim-opacity);
+}
+
+.menu-item .menu-item-accel {
+  margin-left: auto;
+  font-size: var(--font-size-caption);
+  opacity: var(--dim-opacity);
+}
+
+.popover,
+.dropdown-panel,
+.context-menu {
+  position: absolute;
+  z-index: var(--z-popover);
+  min-width: 180px;
+  padding: var(--space-2);
+  background-color: var(--popover-bg-color);
+  color: var(--popover-fg-color);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-popover), 0 0 0 1px var(--popover-shade-color);
+}
+
+.dropdown-panel {
+  overflow-y: auto;
+}
+
+.menu-item,
+.dropdown-item,
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-small);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  color: inherit;
+  transition: background-color var(--transition-fast);
+}
+
+.menu-item:hover,
+.dropdown-item:hover,
+.context-menu-item:hover,
+.context-menu-item:focus-visible {
+  background-color: var(--shade-color);
+}
+
+.dropdown-item.active,
+.dropdown-item.is-active {
+  color: var(--accent-color);
+}
+
+.dropdown-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-separator,
+.dropdown-separator {
+  height: 1px;
+  margin: var(--space-2) var(--space-2);
+  background-color: var(--border-color);
+}
+
+.context-menu-icon {
+  opacity: var(--dim-opacity);
+}
+
+/* Keyfold: anchoring for the Popover component and destructive menu entries. */
+.popover-anchor {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.popover-anchor > .popover {
+  top: calc(100% + var(--space-2));
+  left: 0;
+}
+
+.popover-anchor > .popover.popover-end {
+  left: auto;
+  right: 0;
+}
+
+.popover-anchor > .popover.popover-up {
+  top: auto;
+  bottom: calc(100% + var(--space-2));
+}
+
+.menu-item.destructive {
+  color: var(--destructive-color);
+}
+
+.context-menu {
+  position: fixed;
+}
+
+.context-menu .menu-title {
+  max-width: 420px;
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-caption);
+  opacity: var(--dim-opacity);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,52 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-5);
+  min-height: 26px;
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-caption);
+  background-color: var(--window-bg-color);
+  border-top: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.statusbar .statusbar-key {
+  min-width: 0;
+  font-family: var(--font-mono);
+}
+
+.statusbar .statusbar-hint {
+  opacity: var(--dim-opacity);
+}
+
+.statusbar kbd {
+  font-family: var(--font-sans);
+  font-weight: 700;
+}
+
+/* A hint in the status bar that is also the action it names. */
+.statusbar .statusbar-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.statusbar .statusbar-action:hover {
+  opacity: 1;
+}

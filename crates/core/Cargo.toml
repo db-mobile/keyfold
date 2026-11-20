@@ -1,0 +1,25 @@
+[package]
+name = "keyfold-core"
+description = "Backend for a Redis/Valkey key browser: connection manager, capability layer, SCAN engine and SQLite keyspace index"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+redis.workspace = true
+rusqlite.workspace = true
+tokio = { workspace = true, features = ["net", "io-util"] }
+thiserror.workspace = true
+tracing.workspace = true
+regex.workspace = true
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+russh = { version = "0.65", default-features = false, features = ["ring", "rsa"] }
+
+[target.'cfg(all(target_os = "linux", target_env = "gnu"))'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"

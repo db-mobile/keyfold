@@ -1,0 +1,48 @@
+{
+  "name": "keyfold",
+  "version": "0.1.0",
+  "description": "Keyfold - A fast desktop client for Redis and Valkey that folds millions of keys into a structure you can read",
+  "license": "MIT",
+  "author": "Dennis Blümer <dennis.bluemer@ducart.de>",
+  "homepage": "https://github.com/db-mobile/keyfold#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/db-mobile/keyfold.git"
+  },
+  "bugs": {
+    "url": "https://github.com/db-mobile/keyfold/issues"
+  },
+  "keywords": [
+    "redis",
+    "valkey",
+    "redis-client",
+    "redis-gui",
+    "database-gui",
+    "desktop-app",
+    "tauri",
+    "solidjs"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:tauri": "scripts/build-tauri.sh",
+    "icons:regen": "scripts/regenerate-icons.sh",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tanstack/solid-virtual": "^3.13.49",
+    "@tauri-apps/api": "^2.12.4",
+    "solid-js": "^1.9.17"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.7",
+    "vite-plugin-solid": "^2.11.14"
+  }
+}

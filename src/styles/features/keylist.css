@@ -1,0 +1,136 @@
+/* The flat key list and the search results share one row grid. */
+.keylist-head,
+.keylist-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 56px 72px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: 0 var(--space-4);
+  white-space: nowrap;
+}
+
+.keylist-head {
+  flex-shrink: 0;
+  min-height: var(--control-height-small);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+  opacity: var(--dim-opacity);
+  border-bottom: 1px solid var(--sidebar-shade-color);
+}
+
+.keylist-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.keylist-inner {
+  position: relative;
+  width: 100%;
+}
+
+.keylist-row {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  height: var(--list-row-height);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-small);
+  cursor: default;
+  user-select: none;
+}
+
+.keylist-row:hover {
+  background-color: var(--shade-color);
+}
+
+.keylist-row.selected {
+  background-color: var(--selection-bg-color);
+}
+
+.keylist-row .name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.keylist-row .dim {
+  opacity: var(--dim-opacity);
+  font-size: var(--font-size-caption);
+}
+
+.keylist-head .num,
+.keylist-row .num {
+  text-align: right;
+}
+
+.keylist-row.placeholder .name {
+  opacity: 0.3;
+}
+
+.search-head {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-4) var(--space-2);
+  font-size: var(--font-size-small);
+}
+
+.search-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.search-actions:empty {
+  display: none;
+}
+
+.search-note {
+  font-size: var(--font-size-caption);
+  overflow-wrap: anywhere;
+}
+
+.btn.destructive-text {
+  color: var(--destructive-color);
+}
+
+.search-entry > .search-clear {
+  position: absolute;
+  right: var(--space-1);
+  width: var(--control-height-embedded);
+  height: var(--control-height-embedded);
+  min-height: var(--control-height-embedded);
+  border-radius: var(--radius-pill);
+}
+
+.search-entry > input.entry {
+  padding-right: calc(var(--control-height-embedded) + var(--space-2));
+}
+
+/* The row at the end of a list read page by page: load more, or the end. */
+.keylist-action {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  height: var(--list-row-height);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+}

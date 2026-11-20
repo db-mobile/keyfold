@@ -1,0 +1,91 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # the release workflow runs these jobs as its gate
+  workflow_call:
+
+# a newer push to the same branch or pull request replaces the running one
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check version agreement
+        run: python3 scripts/check-version.py
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      # the desktop shell needs GTK and WebKit headers; it is linted in `app`
+      - run: cargo clippy --workspace --exclude keyfold-app --all-targets
+
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: redis-7.2
+            image: redis:7.2
+            expect: redis
+          - name: redis-8
+            image: redis:8
+            expect: redis
+          - name: valkey-8
+            image: valkey/valkey:8
+            expect: valkey
+          - name: valkey-9
+            image: valkey/valkey:9
+            expect: valkey
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # a standalone primary, a replica of it and a six-node cluster, all
+      # on the host network so announced addresses are reachable
+      - name: Start servers
+        run: scripts/servers.sh start ${{ matrix.image }} >> "$GITHUB_ENV"
+      # the desktop shell's tests need no server; they run once in `app`
+      - run: cargo test --workspace --exclude keyfold-app
+        env:
+          KEYFOLD_EXPECT_SERVER: ${{ matrix.expect }}
+      - name: Stop servers
+        if: always()
+        run: scripts/servers.sh stop
+
+  app:
+    name: desktop shell (linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - run: npm run build
+      - run: cargo build -p keyfold-app --features custom-protocol
+      - run: cargo clippy -p keyfold-app --all-features --all-targets
+      - run: cargo test -p keyfold-app
