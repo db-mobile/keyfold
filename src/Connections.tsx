@@ -105,8 +105,31 @@ export default function Connections(props: ConnectionsProps) {
             </div>
           </Show>
           <p class="list-group-title">Connect by URL</p>
-          <p class="list-group-description">Opens a connection once. Nothing is stored.</p>
+          <p class="list-group-description">Opens a connection once. No connection is stored; its index stays on disk until it is cleared.</p>
           <QuickConnect onConnect={props.onConnect} />
+          <Show when={m.orphans().length > 0}>
+            <p class="list-group-title">Other indexes</p>
+            <p class="list-group-description">Indexes on disk that belong to no stored connection, left by connects by URL.</p>
+            <div class="boxed-list">
+              <For each={m.orphans()}>
+                {(o) => (
+                  <div class="row">
+                    <div class="row-content">
+                      <span class="title monospace">{o.name}</span>
+                    </div>
+                    <div class="suffix">
+                      <span class="caption dim-label numeric" title="Size of this index on disk">
+                        {m.orphanSize(o)}
+                      </span>
+                      <button class="button small" onClick={() => m.clearOrphan(o)} disabled={m.locked()}>
+                        Clear index…
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </For>
+            </div>
+          </Show>
         </div>
       </div>
       <Show when={m.editing()}>

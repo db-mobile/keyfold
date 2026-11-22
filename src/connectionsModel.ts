@@ -3,7 +3,7 @@
 // backend; the webview only ever sends one, it never reads one back.
 
 import { createSignal, onMount } from "solid-js";
-import { api, fmtBytes, type IndexMode, type ProfileInput, type ScanProfile, type ScanTarget, type SshSettings, type StoredProfile } from "./api";
+import { api, fmtBytes, type IndexMode, type OrphanIndex, type ProfileInput, type ScanProfile, type ScanTarget, type SshSettings, type StoredProfile } from "./api";
 import { ask } from "./dialogModel";
 
 export type Draft = ProfileInput & { passwordSaved: boolean; sshSecretSaved: boolean };
@@ -53,11 +53,14 @@ export function createConnectionsModel(props: ConnectionsProps) {
   const [editing, setEditing] = createSignal<Draft | null>(null);
   const [busy, setBusy] = createSignal<string | null>(null);
 
+  const [orphans, setOrphans] = createSignal<OrphanIndex[]>([]);
+
   const reload = () =>
-    api
-      .profilesList()
-      .then((p) => {
+    Promise.all([api.profilesList(), api.indexesOrphans()])
+      .then(([p, o]) => {
         setProfiles(p);
+        setOrphans(o);
+        void api.log("info", `connections: ${p.length} stored, ${o.length} other indexes (${fmtBytes(o.reduce((n, x) => n + x.bytes, 0))})`);
         setListError(null);
       })
       .catch((e) => setListError(String(e)));
@@ -98,8 +101,22 @@ export function createConnectionsModel(props: ConnectionsProps) {
     await reload();
   };
 
+  const clearOrphan = async (o: OrphanIndex) => {
+    const ok = await ask({
+      title: `Clear the index ${o.name}?`,
+      body: `Deletes ${fmtBytes(o.bytes)} on disk. A later connect to that server scans the keyspace again.`,
+      confirm: "Clear index",
+    });
+    if (!ok) return;
+    await api.indexOrphanClear(o.name).catch((e) => setListError(String(e)));
+    await reload();
+  };
+
   return {
     profiles,
+    orphans,
+    clearOrphan: (o: OrphanIndex) => void clearOrphan(o),
+    orphanSize: (o: OrphanIndex) => fmtBytes(o.bytes),
     listError,
     editing,
     /// Nothing else may start while a connect runs.

@@ -541,6 +541,74 @@ pub async fn profile_clear_index(app: AppHandle, sessions: State<'_, Sessions>, 
     blocking(move || remove_index(&cache_dir, &id)).await
 }
 
+/// An index folder that belongs to no stored connection: a connect by URL
+/// leaves one per server and database (`host_port_db`), and a profile
+/// whose delete failed half way leaves its UUID folder.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct OrphanIndex {
+    name: String,
+    bytes: u64,
+}
+
+/// The folders under `indexes/` whose name is not in `stored`, by name.
+fn orphan_indexes(cache_dir: &Path, stored: &[String]) -> Vec<OrphanIndex> {
+    let Ok(entries) = std::fs::read_dir(cache_dir.join("indexes")) else {
+        return Vec::new();
+    };
+    let mut out: Vec<OrphanIndex> = entries
+        .flatten()
+        .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+        .filter_map(|e| Some((e.file_name().into_string().ok()?, e.path())))
+        .filter(|(name, _)| !stored.contains(name))
+        .map(|(name, path)| OrphanIndex {
+            bytes: dir_size(&path),
+            name,
+        })
+        .collect();
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    out
+}
+
+/// Delete one orphan folder. The name has to be one the listing shows, so
+/// nothing the webview sends can name a path outside `indexes/` or the
+/// folder of a stored connection.
+fn remove_orphan_index(cache_dir: &Path, stored: &[String], name: &str) -> Result<(), String> {
+    if !orphan_indexes(cache_dir, stored).iter().any(|o| o.name == name) {
+        return Err(format!("no such index folder: {name:?}"));
+    }
+    let dir = cache_dir.join("indexes").join(name);
+    std::fs::remove_dir_all(&dir).map_err(|e| format!("could not delete {}: {e}", dir.display()))
+}
+
+#[tauri::command]
+pub async fn indexes_orphans(app: AppHandle, store: State<'_, Arc<ProfileStore>>) -> Result<Vec<OrphanIndex>, String> {
+    let cache_dir = app.path().app_cache_dir().map_err(|e| e.to_string())?;
+    let store = Arc::clone(&store);
+    blocking(move || {
+        let stored: Vec<String> = store.list()?.into_iter().map(|p| p.id).collect();
+        Ok(orphan_indexes(&cache_dir, &stored))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn index_orphan_clear(
+    app: AppHandle,
+    sessions: State<'_, Sessions>,
+    store: State<'_, Arc<ProfileStore>>,
+    name: String,
+) -> Result<(), String> {
+    refuse_if_open(&sessions, &name, "clear its index").await?;
+    let cache_dir = app.path().app_cache_dir().map_err(|e| e.to_string())?;
+    let store = Arc::clone(&store);
+    blocking(move || {
+        let stored: Vec<String> = store.list()?.into_iter().map(|p| p.id).collect();
+        remove_orphan_index(&cache_dir, &stored, &name)
+    })
+    .await
+}
+
 /// The editor's fields from a pasted `redis://` or `valkey://` URL.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -932,6 +1000,50 @@ mod tests {
         assert!(p.tls && p.ephemeral_index());
         // switching the database keeps the folder the index lives in
         assert_eq!(p.with_db(5).id, stored.id);
+    }
+
+    #[test]
+    fn orphan_indexes_are_the_folders_no_stored_connection_owns() {
+        let cache = std::env::temp_dir().join(format!("keyfold-orphans-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&cache);
+        let stored = vec!["6f1c0c0e-0000-4000-8000-000000000001".to_string()];
+        assert_eq!(orphan_indexes(&cache, &stored), Vec::new(), "no cache directory yet");
+        let indexes = cache.join("indexes");
+        for name in [stored[0].as_str(), "127.0.0.1_6379_0", "db.example_6380_3"] {
+            std::fs::create_dir_all(indexes.join(name)).unwrap();
+            std::fs::write(indexes.join(name).join("db0.sqlite"), [0u8; 10]).unwrap();
+        }
+        std::fs::write(indexes.join("stray-file"), b"x").unwrap();
+        std::fs::write(cache.join("outside"), b"x").unwrap();
+        let names = |c: &Path| {
+            orphan_indexes(c, &stored)
+                .into_iter()
+                .map(|o| (o.name, o.bytes))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            names(&cache),
+            vec![("127.0.0.1_6379_0".to_string(), 10), ("db.example_6380_3".to_string(), 10)]
+        );
+
+        // only a listed name is deleted: no stored id, no path, no file
+        for bad in [
+            stored[0].as_str(),
+            "",
+            ".",
+            "..",
+            "../outside",
+            "127.0.0.1_6379_0/..",
+            "stray-file",
+            "nope",
+        ] {
+            assert!(remove_orphan_index(&cache, &stored, bad).is_err(), "{bad:?}");
+        }
+        assert!(indexes.join(&stored[0]).join("db0.sqlite").exists());
+        assert!(cache.join("outside").exists());
+        remove_orphan_index(&cache, &stored, "127.0.0.1_6379_0").unwrap();
+        assert_eq!(names(&cache), vec![("db.example_6380_3".to_string(), 10)]);
+        let _ = std::fs::remove_dir_all(&cache);
     }
 
     #[test]

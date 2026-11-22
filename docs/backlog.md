@@ -32,8 +32,11 @@ that left it open and what it would take.
   (`crates/core/src/private.rs`). Still open: nothing is done on Windows,
   where the profile directory's ACL is relied on; to be checked with the
   Windows build.
-- A quick connect by URL stores nothing and keeps the `host_port_db` index
-  folder; nothing in the UI lists or clears those folders.
+- A quick connect by URL stores no connection and keeps its `host_port_db`
+  index folder; the connection manager lists those folders under "Other
+  indexes" and clears them since 2026-11-22. Still open: a quick connect
+  makes a folder per database (`Profile::with_db` changes the id), where a
+  stored connection keeps one folder with a file per database.
 - The delimiter of an index is detected once and kept: a database whose
   keys were replaced by ones with another delimiter shows a flat tree
   until its index is cleared (seen on 2026-11-22 with a test database).

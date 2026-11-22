@@ -1200,6 +1200,8 @@ pub fn run() {
             profiles::profile_save,
             profiles::profile_delete,
             profiles::profile_clear_index,
+            profiles::indexes_orphans,
+            profiles::index_orphan_clear,
             profiles::profile_from_url,
             profiles::connect_profile,
             profiles::ssh_trust

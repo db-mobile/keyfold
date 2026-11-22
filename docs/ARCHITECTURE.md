@@ -117,6 +117,11 @@ back to the stored connection. "Quick connect by URL" stores nothing.
 `KEYFOLD_AUTOPROFILE=<url>` stores, connects, lists and deletes a
 connection, for smoke tests.
 
+Index folders that belong to no stored connection (a connect by URL leaves
+one per server and database) are listed below the URL field as "Other
+indexes" with their size and a "Clear index" action (`indexes_orphans`,
+`index_orphan_clear`; only a name the listing shows can be deleted).
+
 Everything the app writes is the user's alone on Unix
 (`crates/core/src/private.rs`): mode 0700 on the data directory, the
 `indexes` folder and each index folder, 0600 on index files (set before

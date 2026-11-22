@@ -553,12 +553,21 @@ export interface StartupOptions {
   autoprofileSsh: string | null;
 }
 
+/// An index folder without a stored connection, named after `host_port_db`.
+export interface OrphanIndex {
+  name: string;
+  bytes: number;
+}
+
 export const api = {
   log: (level: "info" | "warn" | "error", message: string) => invoke<void>("app_log", { level, message }).catch(() => {}),
   startupOptions: () => invoke<StartupOptions>("startup_options"),
   connect: (url: string, tag: string, profile: ScanProfile | null = null, target: ScanTarget | null = null, indexMode: string | null = null) =>
     invoke<Connection>("connect", { url, tag, profile, target, indexMode }),
   profilesList: () => invoke<StoredProfile[]>("profiles_list"),
+  /// Index folders no stored connection owns (connects by URL leave them).
+  indexesOrphans: () => invoke<OrphanIndex[]>("indexes_orphans"),
+  indexOrphanClear: (name: string) => invoke<void>("index_orphan_clear", { name }),
   /// `password`: null keeps the stored one, "" removes it.
   /// `sshSecret` follows the same three answers as `password`.
   profileSave: (profile: ProfileInput, password: string | null, sshSecret: string | null = null) =>
