@@ -315,13 +315,28 @@ impl Session {
         // without an index the files still exist, empty, in the temp
         // directory: nothing is ever written to them
         let (location, ephemeral_dir) = if profile.ephemeral_index() || index_mode == IndexMode::None {
-            let dir = std::env::temp_dir().join(format!("keyfold-{}-{id}", std::process::id()));
+            // a directory of its own with a random name, user-only: a
+            // name another local user can guess could be put there first
+            let mut builder = tempfile::Builder::new();
+            builder.prefix("keyfold-");
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                builder.permissions(std::fs::Permissions::from_mode(0o700));
+            }
+            let dir = builder
+                .tempdir()
+                .map_err(|e| format!("could not create a temporary index directory: {e}"))?
+                .keep();
             (Location::File(dir.join("db.sqlite")), Some(dir))
         } else {
-            (
-                Location::File(cache_dir.join("indexes").join(&profile.id).join(format!("db{}.sqlite", profile.db))),
-                None,
-            )
+            let root = cache_dir.join("indexes");
+            let dir = root.join(&profile.id);
+            // folder names carry host names, the files key names (CONCEPT 3.4)
+            for d in [&root, &dir] {
+                keyfold_core::private::own_dir(d).map_err(|e| format!("could not create {}: {e}", d.display()))?;
+            }
+            (Location::File(dir.join(format!("db{}.sqlite", profile.db))), None)
         };
         let options = IndexOptions::default();
         let (writer, reader, anchor_reader, search_reader) = {

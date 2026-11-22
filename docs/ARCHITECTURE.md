@@ -117,6 +117,13 @@ back to the stored connection. "Quick connect by URL" stores nothing.
 `KEYFOLD_AUTOPROFILE=<url>` stores, connects, lists and deletes a
 connection, for smoke tests.
 
+Everything the app writes is the user's alone on Unix
+(`crates/core/src/private.rs`): mode 0700 on the data directory, the
+`indexes` folder and each index folder, 0600 on index files (set before
+SQLite writes to them, so WAL and SHM files inherit it), `profiles.json`
+and `known_hosts`. The index of a prod-tagged or index-less session is in a
+directory of its own with a random name under the temp directory.
+
 The webview runs under a content security policy
 (`src-tauri/tauri.conf.json`): scripts and styles from the app itself only,
 images from the app or `data:` (the icons Vite inlines), connections to the

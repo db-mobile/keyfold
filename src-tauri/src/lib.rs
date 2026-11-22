@@ -1115,8 +1115,23 @@ pub fn run() {
         .manage(Sessions::default())
         .setup(|app| {
             // stored connections live in the app data dir (CONCEPT 3.4)
-            let path = app.path().app_data_dir()?.join("profiles.json");
+            let data_dir = app.path().app_data_dir()?;
+            let path = data_dir.join("profiles.json");
             tracing::info!(path = %path.display(), "profile store");
+            // what an older version left readable by others is tightened
+            // at every start: the data directory with the stored
+            // connections and accepted host keys, and the index folder
+            {
+                use keyfold_core::private::{own_dir, restrict_existing};
+                let indexes = app.path().app_cache_dir()?.join("indexes");
+                let done = own_dir(&data_dir)
+                    .and_then(|()| restrict_existing(&path))
+                    .and_then(|()| restrict_existing(&data_dir.join("known_hosts")))
+                    .and_then(|()| own_dir(&indexes));
+                if let Err(e) = done {
+                    tracing::warn!("could not restrict the app's directories to the user: {e}");
+                }
+            }
             app.manage(Arc::new(profiles::ProfileStore::new(path)));
             #[cfg(target_os = "linux")]
             if let Some(window) = app.get_webview_window("main") {

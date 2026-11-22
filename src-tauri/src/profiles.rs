@@ -258,16 +258,13 @@ impl ProfileStore {
         };
         let text = serde_json::to_string_pretty(&file).map_err(|e| e.to_string())?;
         let fail = |e: std::io::Error| format!("could not write {}: {e}", self.path.display());
+        // the app's data directory and everything in it is the user's alone
         if let Some(dir) = self.path.parent() {
-            std::fs::create_dir_all(dir).map_err(fail)?;
+            keyfold_core::private::own_dir(dir).map_err(fail)?;
         }
         let tmp = self.path.with_extension("json.tmp");
+        keyfold_core::private::create_file(&tmp).map_err(fail)?;
         std::fs::write(&tmp, text).map_err(fail)?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o600)).map_err(fail)?;
-        }
         std::fs::rename(&tmp, &self.path).map_err(fail)
     }
 

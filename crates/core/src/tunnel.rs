@@ -121,6 +121,11 @@ pub fn trust_host_key(file: &Path, key: &HostKey) -> Result<()> {
         )));
     }
     let public = keys::PublicKey::from_openssh(&key.openssh).map_err(|e| Error::Tunnel(format!("not a public key: {e}")))?;
+    // host keys another local user could add to would defeat the check
+    if let Some(dir) = file.parent().filter(|d| !d.as_os_str().is_empty()) {
+        crate::private::create_dir(dir)?;
+    }
+    crate::private::create_file(file)?;
     keys::known_hosts::learn_known_hosts_path(&key.host, key.port, &public, file)
         .map_err(|e| Error::Tunnel(format!("could not write {}: {e}", file.display())))
 }

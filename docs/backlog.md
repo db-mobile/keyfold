@@ -25,7 +25,13 @@ that left it open and what it would take.
 - Stored connections exist (`src-tauri/src/profiles.rs`): `profiles.json`
   in the app data dir, a UUID per profile as index folder and keychain
   entry, index size, "clear index", delete. Still open from 3.4: a
-  configurable cache root; user-only permissions on index files.
+  configurable cache root.
+- User-only permissions (CONCEPT 3.4) are set on Unix since 2026-11-22:
+  0700 on the app's data, index and temp-index directories, 0600 on index
+  files, `profiles.json` and both `known_hosts` files, from creation on
+  (`crates/core/src/private.rs`). Still open: nothing is done on Windows,
+  where the profile directory's ACL is relied on; to be checked with the
+  Windows build.
 - A quick connect by URL stores nothing and keeps the `host_port_db` index
   folder; nothing in the UI lists or clears those folders.
 - The delimiter of an index is detected once and kept: a database whose

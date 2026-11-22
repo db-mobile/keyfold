@@ -21,6 +21,7 @@ custom-protocol = ["tauri/custom-protocol"]
 tauri-build = { version = "2.7", features = [] }
 
 [dependencies]
+tempfile = "3"
 keyfold-core.workspace = true
 tauri = { version = "2.12", features = [] }
 serde = { version = "1", features = ["derive"] }

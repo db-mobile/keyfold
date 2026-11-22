@@ -67,7 +67,7 @@ impl Target {
                 (None, None) => SshAuth::Agent,
             };
             let mut config = SshConfig::parse(bastion, auth)?;
-            let known_hosts = std::env::temp_dir().join("keyfold-cli-known_hosts");
+            let known_hosts = cli_known_hosts();
             config.known_hosts = Some(known_hosts.clone());
             // log in once now: an unknown host key is a question for the user, not a failed connect
             let probe = tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(Tunnel::open(config.clone())));
@@ -86,6 +86,17 @@ impl Target {
         }
         Ok(p)
     }
+}
+
+/// Where the CLI records SSH host keys accepted with `--ssh-trust`: the
+/// user's state directory, never a directory other users can write to.
+fn cli_known_hosts() -> PathBuf {
+    let var = |name: &str| std::env::var_os(name).filter(|v| !v.is_empty()).map(PathBuf::from);
+    let base = var("XDG_STATE_HOME")
+        .or_else(|| var("HOME").map(|h| h.join(".local").join("state")))
+        .or_else(|| var("LOCALAPPDATA"))
+        .unwrap_or_else(|| PathBuf::from(".local"));
+    base.join("keyfold").join("known_hosts")
 }
 
 #[derive(Args, Clone)]

@@ -640,28 +640,24 @@ fn open_connection_with(location: &Location, shard: Option<usize>, flags: OpenFl
                 None => path.clone(),
                 Some(i) => Location::shard_path(path, i),
             };
-            if let (true, Some(dir)) = (flags.contains(OpenFlags::SQLITE_OPEN_CREATE), path.parent()) {
-                std::fs::create_dir_all(dir)?;
-            }
-            let conn = Connection::open_with_flags(&path, flags)?;
             if flags.contains(OpenFlags::SQLITE_OPEN_CREATE) {
-                restrict_permissions(&path);
+                if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
+                    crate::private::create_dir(dir)?;
+                }
+                // the file exists with user-only permissions before SQLite
+                // writes a byte to it; its WAL and SHM files take their
+                // mode from it
+                crate::private::create_file(&path)?;
+                for suffix in ["-wal", "-shm", "-journal"] {
+                    let mut side = path.clone().into_os_string();
+                    side.push(suffix);
+                    crate::private::restrict_existing(Path::new(&side))?;
+                }
             }
-            Ok(conn)
+            Ok(Connection::open_with_flags(&path, flags)?)
         }
     }
 }
-
-#[cfg(unix)]
-fn restrict_permissions(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-    if let Err(e) = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)) {
-        tracing::warn!(path = %path.display(), "could not restrict index permissions: {e}");
-    }
-}
-
-#[cfg(not(unix))]
-fn restrict_permissions(_path: &Path) {}
 
 #[cfg(test)]
 mod tests {
@@ -677,6 +673,33 @@ mod tests {
         let state = idx.scan_state().unwrap();
         assert_eq!(state.status, ScanStatus::Idle);
         assert_eq!(state.generation, 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn index_files_and_their_directory_are_user_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("indexes").join("host_6379_0");
+        let path = dir.join("db0.sqlite");
+        let idx = Index::open(Location::File(path.clone()), &IndexOptions::default()).unwrap();
+        assert_eq!(mode(&dir), 0o700);
+        assert_eq!(mode(dir.parent().unwrap()), 0o700);
+        let mut seen = 0;
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let p = entry.unwrap().path();
+            assert_eq!(mode(&p), 0o600, "{}", p.display());
+            seen += 1;
+        }
+        // the keys file, four node shards and their WAL and SHM files
+        assert!(seen >= 10, "{seen} files");
+        drop(idx);
+
+        // files that an older version left readable are tightened on open
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let _idx = Index::open(Location::File(path.clone()), &IndexOptions::default()).unwrap();
+        assert_eq!(mode(&path), 0o600);
     }
 
     #[test]

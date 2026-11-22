@@ -25,6 +25,7 @@ pub mod index;
 pub mod meta;
 pub mod mutate;
 pub mod notify;
+pub mod private;
 pub mod route;
 pub mod scan;
 pub mod search;
