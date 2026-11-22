@@ -639,6 +639,8 @@ export const api = {
     listen<LiveStatus>("live:status", (e) => handler(e.payload)),
   onDeleteProgress: (handler: (p: DeleteProgress) => void): Promise<UnlistenFn> =>
     listen<DeleteProgress>("delete:progress", (e) => handler(e.payload)),
+  /// A live event arrived for the key the value panel shows; the payload is the session.
+  onValueChanged: (handler: (session: number) => void): Promise<UnlistenFn> => listen<number>("value:changed", (e) => handler(e.payload)),
   onIndexChanged: (handler: (p: IndexChanged) => void): Promise<UnlistenFn> =>
     listen<IndexChanged>("index:changed", (e) => handler(e.payload)),
   onScanProgress: (handler: (p: ScanProgress) => void): Promise<UnlistenFn> =>

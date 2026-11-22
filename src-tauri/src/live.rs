@@ -194,7 +194,15 @@ impl Session {
         tokio::spawn(async move {
             let mut last_emit = Instant::now() - Duration::from_secs(1);
             let mut pending_change = (0u64, 0u64);
+            let mut last_open = Instant::now() - Duration::from_secs(1);
+            let mut pending_open = false;
             while let Some(batch) = events.recv().await {
+                // an event for the key in the value panel, whether or not it changes the index
+                if let Ok(open) = s.open_key.lock()
+                    && let Some(k) = open.as_deref()
+                {
+                    pending_open |= batch.iter().any(|e| e.key == k);
+                }
                 let outcomes = notify::reduce(&batch);
                 match s.write_through_many(outcomes).await {
                     Ok((change, queued)) => {
@@ -222,6 +230,14 @@ impl Session {
                     pending_change = (0, 0);
                     last_emit = Instant::now();
                 }
+                if pending_open && last_open.elapsed() >= Duration::from_millis(250) {
+                    let _ = app.emit("value:changed", s.id);
+                    pending_open = false;
+                    last_open = Instant::now();
+                }
+            }
+            if pending_open {
+                let _ = app.emit("value:changed", s.id);
             }
             if pending_change.0 > 0 || pending_change.1 > 0 {
                 emit_index_changed(&app, s.id, "live", pending_change.0, pending_change.1);

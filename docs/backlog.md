@@ -65,9 +65,11 @@ that left it open and what it would take.
   this subtree"; the share walked by a subtree scan is an estimate from
   `COUNT`, not read from the cursor; the no-index list has no `SCAN TYPE`
   filter although the pager takes one.
-- The value panel reloads the open key whenever the connection's numbers
-  are refreshed (its effect depends on a fresh array each time), which
-  closes an open editor during live updates (step five).
+- The value panel follows live changes of the open key since 2026-11-22
+  (`value:changed`, at most every 2 s, never while an editor is open).
+  Still open: a key with more than one page loaded only gets its facts
+  refreshed, not its rows, unless its type or length changed; without live
+  updates there is only the reload button.
 
 ## Tree and folding (CONCEPT 5.1, 5.6)
 

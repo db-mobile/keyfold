@@ -48,6 +48,9 @@ export default function ValuePanel(props: ValuePanelProps) {
                     Add {m.addWhat()}
                   </button>
                 </Show>
+                <button class="button flat image-button small" disabled={!m.canReload()} onClick={m.reload} title="Reload from the server" aria-label="Reload from the server">
+                  <Icon name="refresh" />
+                </button>
                 <button class="button flat image-button small destructive-text" disabled={m.busy()} onClick={m.deleteKey} title="Delete key" aria-label="Delete key">
                   <Icon name="trash" />
                 </button>

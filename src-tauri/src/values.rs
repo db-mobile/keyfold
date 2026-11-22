@@ -85,6 +85,9 @@ pub async fn value_inspect(sessions: State<'_, Sessions>, id: u32, key: KeyArg) 
     let t = std::time::Instant::now();
     let key = key.bytes()?;
     let k = &key[..];
+    if let Ok(mut open) = session.open_key.lock() {
+        *open = Some(key.clone());
+    }
     let info = {
         let mut router = session.router.lock().await;
         routed!(router, Hop::key(k), |c| value::inspect(c, k).await).map_err(|e| e.to_string())?

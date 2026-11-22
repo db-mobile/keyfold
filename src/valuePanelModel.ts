@@ -12,7 +12,7 @@
 // afterwards. Deleting a key always confirms; prod confirms every write.
 
 import { createVirtualizer, type VirtualItem } from "@tanstack/solid-virtual";
-import { createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
+import { createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import {
   api,
   CHUNK_BYTES,
@@ -37,6 +37,8 @@ import { toast } from "./ui/toastModel";
 const ROW = VALUE_ROW;
 /// Strings up to this size are edited in place; larger ones are read-only.
 const MAX_EDIT_BYTES = 1 << 20;
+/// A key that changes on the server all the time is reloaded this often at most.
+const FOLLOW_EVERY_MS = 2000;
 
 export type Row = { kind: "entry"; e: Entry } | { kind: "line"; text: string } | { kind: "hex"; offset: number } | { kind: "more" };
 export type Editor = { kind: "rename" } | { kind: "ttl" } | { kind: "string" } | { kind: "add" } | { kind: "row"; index: number; e: Entry };
@@ -66,6 +68,8 @@ export function createValuePanelModel(props: ValuePanelProps) {
   const [head, setHead] = createSignal(false);
   const [busy, setBusy] = createSignal(false);
   let generation = 0;
+  /// A page after the first one is loaded.
+  let paged = false;
 
   const reset = () => {
     setEntries([]);
@@ -90,6 +94,7 @@ export function createValuePanelModel(props: ValuePanelProps) {
       const page = await api.valuePage(props.conn.id, key, i.keyType, c, filter() || null);
       if (gen !== generation) return;
       setEntries(first ? page.entries : [...entries(), ...page.entries]);
+      paged = !first;
       setDone(page.done);
       if (!page.done) {
         if (i.viewer === "list" || (i.viewer === "zset" && byRank() && !filter())) setCursor({ kind: "rank", value: Number(page.next) });
@@ -134,13 +139,17 @@ export function createValuePanelModel(props: ValuePanelProps) {
     }
   };
 
+  let lastLoad = 0;
+
   /// One inspect, then the first page or preview.
-  const load = async (key: KeyRef | null) => {
+  const load = async (key: KeyRef | null, why = "selected") => {
     generation++;
     const gen = generation;
+    lastLoad = Date.now();
     reset();
     setInfo(null);
     if (!key) return;
+    void api.log("info", `value load (${why}): ${keyId(key)}`);
     try {
       const i = await api.valueInspect(props.conn.id, key);
       if (gen !== generation) return;
@@ -154,16 +163,69 @@ export function createValuePanelModel(props: ValuePanelProps) {
     }
   };
 
+  // The key's identity as one string. A memo compares by value, so a connection object replaced by a
+  // status refresh, or the same key selected again, does not reload (and so does not close an editor).
+  const identity = createMemo(() => `${props.conn.id} ${props.selected ? keyId(props.selected) : ""}`);
   createEffect(
-    on(
-      // the key's identity, so that the same key selected again does not reload
-      () => [props.selected ? keyId(props.selected) : null, props.conn.id] as const,
-      () => {
-        setFilter("");
-        void load(props.selected);
-      },
-    ),
+    on(identity, () => {
+      setFilter("");
+      void load(props.selected);
+    }),
   );
+
+  /// The user has gone past the first page or preview; a refresh would throw that away.
+  const deep = () => (info()?.viewer === "string" ? bytes().length > PREVIEW_BYTES : paged);
+
+  /// The server changed the open key (a live event): take the new facts and the first page without
+  /// clearing the panel first. Never while an editor is open or a write or a page load is under way.
+  const follow = async () => {
+    const key = props.selected;
+    const old = info();
+    if (!key || !old || editor() || busy() || loading()) return;
+    const gen = generation;
+    lastLoad = Date.now();
+    void api.log("info", `value load (live): ${keyId(key)}`);
+    try {
+      const i = await api.valueInspect(props.conn.id, key);
+      if (gen !== generation || editor() || busy() || loading()) return;
+      const reshaped = i.exists !== old.exists || i.viewer !== old.viewer || i.keyType !== old.keyType;
+      if (reshaped || (deep() && i.length !== old.length)) return void load(key, "live, changed shape");
+      setInfo(i);
+      if (deep() || !i.exists) return;
+      if (i.viewer === "string") {
+        const chunk = await api.valueChunk(props.conn.id, key, 0, PREVIEW_BYTES);
+        if (gen === generation && !deep()) setBytes(chunk);
+      } else if (i.viewer === "raw") {
+        const d = await api.valueDump(props.conn.id, key);
+        if (gen === generation) setDump(d);
+      } else await loadPage(true);
+    } catch (e) {
+      if (gen === generation) setError(String(e));
+    }
+  };
+
+  // Live events for the open key, followed at most every two seconds; the last one is never dropped.
+  let followTimer: ReturnType<typeof setTimeout> | undefined;
+  const onValueChanged = (session: number) => {
+    if (session !== props.conn.id || followTimer !== undefined) return;
+    followTimer = setTimeout(
+      () => {
+        followTimer = undefined;
+        void follow();
+      },
+      Math.max(0, FOLLOW_EVERY_MS - (Date.now() - lastLoad)),
+    );
+  };
+  onMount(() => {
+    let unlisten: (() => void) | undefined;
+    let gone = false;
+    void api.onValueChanged(onValueChanged).then((u) => (gone ? u() : (unlisten = u)));
+    onCleanup(() => {
+      gone = true;
+      unlisten?.();
+      clearTimeout(followTimer);
+    });
+  });
 
   // Filter or order changed: start over.
   createEffect(
@@ -464,6 +526,8 @@ export function createValuePanelModel(props: ValuePanelProps) {
     canPersist: (ed: Editor) => ed.kind === "ttl" && info()?.ttl !== null,
     persist,
     cancel: () => setEditor(null),
+    reload: () => void load(props.selected, "reload button"),
+    canReload: () => !editor() && !busy(),
     save,
     saveLabel: () => (busy() ? "Saving…" : "Save"),
 

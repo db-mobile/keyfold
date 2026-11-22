@@ -225,6 +225,9 @@ pub struct Session {
     pub live_last: Mutex<LiveStatus>,
     /// Index rows added and removed by notifications in this session.
     pub live_applied: Mutex<(u64, u64)>,
+    /// The key the value panel shows (the last one inspected). A live
+    /// event for it is passed on as `value:changed`.
+    pub open_key: Mutex<Option<Vec<u8>>>,
     /// Read-only view the list windows are served from.
     pub reader: Mutex<Index>,
     /// A second read-only view, used only to rebuild anchors so that the
@@ -348,6 +351,7 @@ impl Session {
             live_on: AtomicBool::new(false),
             live_last: Mutex::new(LiveStatus::default()),
             live_applied: Mutex::new((0, 0)),
+            open_key: Mutex::new(None),
             reader: Mutex::new(reader),
             anchor_reader: Mutex::new(anchor_reader),
             anchors: Mutex::new(None),

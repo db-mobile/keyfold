@@ -117,6 +117,12 @@ back to the stored connection. "Quick connect by URL" stores nothing.
 `KEYFOLD_AUTOPROFILE=<url>` stores, connects, lists and deletes a
 connection, for smoke tests.
 
+More smoke-test aids: `KEYFOLD_AUTOSORT=<name|count|numeric>` changes the
+tree sort after `KEYFOLD_AUTOEXPAND` and logs the row count before and
+after; every load of the value panel is logged with its reason (`selected`,
+`live`, `reload button`), so `KEYFOLD_AUTOSELECT` with `KEYFOLD_AUTOLIVE=1`
+shows how often a changing key is reloaded.
+
 The `db` selector in the header switches the logical database. It lists
 databases `0..N` (`CONFIG GET databases`, or `cluster-databases` on a
 cluster; 16 are assumed when `CONFIG GET` is denied) with the key counts
