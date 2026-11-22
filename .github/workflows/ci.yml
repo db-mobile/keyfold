@@ -34,6 +34,18 @@ jobs:
       # the desktop shell needs GTK and WebKit headers; it is linted in `app`
       - run: cargo clippy --workspace --exclude keyfold-app --all-targets
 
+  frontend:
+    name: frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   test:
     name: test (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -83,9 +95,12 @@ jobs:
       - name: Tauri system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf xvfb
       - run: npm ci
       - run: npm run build
       - run: cargo build -p keyfold-app --features custom-protocol
       - run: cargo clippy -p keyfold-app --all-features --all-targets
       - run: cargo test -p keyfold-app
+      # the built app under Xvfb against one server; the matrix covers the others
+      - name: Smoke test
+        run: scripts/smoke.sh valkey/valkey:9

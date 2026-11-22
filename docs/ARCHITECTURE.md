@@ -78,6 +78,36 @@ scripts/servers.sh start redis:8 && env $(scripts/servers.sh env | xargs) cargo 
 scripts/matrix.sh          # all four servers, each with replica and cluster, needs Docker
 ```
 
+## Tests
+
+Backend tests are Rust tests; the ones that need a server are described
+above. The frontend has its own, run by Vitest in jsdom:
+
+```sh
+npm test                     # all frontend tests, no server and no Tauri needed
+npx vitest src/treeModel.test.ts   # one file, watching
+scripts/smoke.sh             # the built app against a real server, needs Docker
+```
+
+- A test file sits next to what it tests: `nameModel.test.ts` for a model,
+  `Name.test.tsx` for a component that is clicked through.
+- Every model reaches the backend through the `api` object of `src/api.ts`.
+  `fakeApi` (`src/test/fakeApi.ts`) replaces its members for one test: the
+  calls a test expects are passed in, events are sent with `emit`, and a
+  call nobody planned for fails the test. `src/test/fixtures.ts` builds the
+  payloads.
+- Models run inside `createRoot`; props that change are signals behind
+  getters, because a store would merge a new object into the old one.
+- jsdom has no layout. `scrollBox` (`src/test/scroll.ts`) gives a list's
+  scroll element a stated size, so the virtualizer hands out rows. This
+  tests what a model requests and holds, not what is painted.
+- Component tests (`Connections.test.tsx`, `Header.test.tsx`) find elements
+  by role and label, as a user would, never by class or test id.
+- `scripts/smoke.sh [image]` starts a server in Docker, runs the built app
+  twice with `KEYFOLD_AUTOPROFILE` and `KEYFOLD_AUTOSWITCHDB` (see below)
+  and checks the backend log. The app's data, cache and config go to a
+  temporary directory. Without a display or in CI it runs under Xvfb.
+
 ## Desktop shell
 
 ```sh

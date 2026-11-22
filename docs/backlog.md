@@ -154,10 +154,17 @@ that left it open and what it would take.
   in Resonance's release workflow: macOS and Windows packages, the Tauri
   updater with signed artifacts and `latest.json`, and the AUR, Homebrew and
   winget packages.
-- `normal_profile_completes_with_load_sampling` asserts that the scan never
-  backs off; it failed once on Valkey 9 (1 run in 5 on 2026-11-15) while the
-  machine was busy, and passed on every rerun. The assertion depends on the
-  server's `instantaneous_ops_per_sec` right after the fill.
-- The connection manager and the database selector have only been driven
-  through `KEYFOLD_AUTOPROFILE` and `KEYFOLD_AUTOSWITCHDB`; no test clicks
-  through the editor.
+- Frontend tests exist since 2026-11-22 (`npm test`, see ARCHITECTURE,
+  "Tests"). Still open: no tests for `valuePanelModel.ts`, `appModel.ts`,
+  `newKeyDialogModel.ts`, the jump palette's keyboard handling, the
+  header's live toggle and the shared pieces in `src/ui/`; the virtualised
+  lists are tested through their models only (jsdom has no layout), so
+  nothing checks what is painted.
+- `scripts/smoke.sh` starts the built app against a real server and reads
+  the backend log (stored connection, database switch). Still open: it is
+  Linux only, covers two of the `KEYFOLD_AUTO*` hooks, and its CI step
+  (Xvfb) has not run on GitHub yet.
+- The lists mark a scroll as unsettled in a listener that runs after the
+  virtualizer's, so the first scroll event of a movement can still issue
+  one request (seen in the tests of `searchResultsModel.ts`); the comment
+  in `keyListModel.ts` says a fling never issues requests.

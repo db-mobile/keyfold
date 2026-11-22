@@ -201,7 +201,7 @@ Contributions are welcome.
 
 1. Read [`CONCEPT.md`](CONCEPT.md) first; it explains why things are the way they are.
 2. Fork the repository and create a feature branch.
-3. Run `cargo fmt --all`, `cargo clippy --workspace` and `npm run build` before committing.
+3. Run `cargo fmt --all`, `cargo clippy --workspace`, `npm run build` and `npm test` before committing.
 4. Run the tests against all four servers with `scripts/matrix.sh` (needs Docker), or against one server with `KEYFOLD_TEST_URL=redis://127.0.0.1:6379/15 cargo test --workspace`. The test database is flushed.
 5. Open a pull request.
 
