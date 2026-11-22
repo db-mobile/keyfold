@@ -1,15 +1,45 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <!-- Keyfold app icon, the master for every generated size.
-       Regenerate the bitmaps with scripts/regenerate-icons.sh. -->
-  <rect x="64" y="64" width="896" height="896" rx="192" fill="#1d2026" />
+       Regenerate the bitmaps with scripts/regenerate-icons.sh.
+       Built on the Resonance icon's construction: the same plate, a white
+       core inside open rings with round caps, and the yellow / white / light
+       tint trio on the same blue plate. Here the rings form the bow
+       of a key. -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1257ab" />
+      <stop offset="100%" stop-color="#0c4285" />
+    </linearGradient>
+    <linearGradient id="bowGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#f6d32d" />
+      <stop offset="100%" stop-color="#f9f06b" />
+    </linearGradient>
+    <linearGradient id="innerGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#99c1f1" />
+      <stop offset="100%" stop-color="#62a0ea" />
+    </linearGradient>
+    <linearGradient id="shaftGradient" gradientUnits="userSpaceOnUse" x1="240" y1="0" x2="600" y2="0">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f6f5f4" />
+    </linearGradient>
+    <radialGradient id="coreGradient" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f6f5f4" />
+    </radialGradient>
+  </defs>
 
-  <g fill="#4c85f2">
-    <!-- shaft, rounded at the upper corner of the tip -->
-    <path d="M500 430 H780 A40 40 0 0 1 820 470 V510 H500 Z" />
-    <!-- the two bits -->
-    <rect x="700" y="500" width="60" height="100" />
-    <rect x="780" y="500" width="40" height="140" />
+  <rect x="100" y="100" width="824" height="824" rx="63.384615" fill="url(#bgGradient)" />
+
+  <g transform="translate(404 620) rotate(-45)" fill="none"
+     stroke-linecap="round" stroke-linejoin="round">
+    <!-- bow: two open rings around the core, reaching close to the plate edge -->
+    <circle r="250" stroke="url(#bowGradient)" stroke-width="60"
+            stroke-dasharray="1274 297" transform="rotate(34)" />
+    <circle r="158" stroke="url(#innerGradient)" stroke-width="44"
+            stroke-dasharray="660 333" transform="rotate(150)" />
+    <circle r="92" fill="url(#coreGradient)" />
+    <circle r="22" fill="#073364" fill-opacity="0.12" />
+    <!-- shaft and the two bits -->
+    <path d="M244 0 H560 V92 M455 0 V130" stroke="url(#shaftGradient)" stroke-width="62" />
   </g>
-  <!-- bow -->
-  <circle cx="390" cy="470" r="135" fill="none" stroke="#4c85f2" stroke-width="70" />
 </svg>
