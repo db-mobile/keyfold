@@ -255,6 +255,8 @@ pub struct ConnectionManager {
     connect_timeout: Duration,
     response_timeout: Duration,
     tunnel: Option<std::sync::Arc<crate::tunnel::Tunnel>>,
+    /// Shared by every connection this manager (or a clone of it) opens.
+    denials: crate::capability::Denials,
 }
 
 impl ConnectionManager {
@@ -265,6 +267,7 @@ impl ConnectionManager {
             connect_timeout: Duration::from_secs(5),
             response_timeout: Duration::from_secs(30),
             tunnel,
+            denials: Default::default(),
         }
     }
 
@@ -282,6 +285,11 @@ impl ConnectionManager {
 
     pub fn profile(&self) -> &Profile {
         &self.profile
+    }
+
+    /// Commands the ACL refused on any connection this manager opened.
+    pub fn denials(&self) -> &crate::capability::Denials {
+        &self.denials
     }
 
     pub fn with_timeouts(mut self, connect: Duration, response: Duration) -> Self {
@@ -357,6 +365,7 @@ impl ConnectionManager {
             protocol,
             label: format!("{}:{}/{}", node.host, node.port, self.profile.db),
             addr: node.clone(),
+            denials: self.denials.clone(),
         })
     }
 
@@ -391,6 +400,7 @@ pub struct Conn {
     protocol: ProtocolVersion,
     label: String,
     addr: NodeAddr,
+    denials: crate::capability::Denials,
 }
 
 impl std::fmt::Debug for Conn {
@@ -419,13 +429,26 @@ impl Conn {
         &self.addr
     }
 
+    /// Commands the ACL refused on any connection of this session.
+    pub fn denials(&self) -> &crate::capability::Denials {
+        &self.denials
+    }
+
+    /// Every error passes here: a command the ACL refuses is remembered.
+    fn noted(&self, e: Error) -> Error {
+        if let Some(name) = e.denied_command() {
+            self.denials.mark(&name);
+        }
+        e
+    }
+
     /// Send one command and return its reply.
     pub async fn raw(&mut self, cmd: &Cmd) -> Result<Value> {
         let name = command_name(cmd);
         match self.inner.send_packed_command(cmd).await {
-            Ok(Value::ServerError(e)) => Err(Error::from_server(&name, e.code(), e.details())),
+            Ok(Value::ServerError(e)) => Err(self.noted(Error::from_server(&name, e.code(), e.details()))),
             Ok(v) => Ok(v),
-            Err(e) => Err(map_client_error(&name, e)),
+            Err(e) => Err(self.noted(map_client_error(&name, e))),
         }
     }
 
@@ -439,12 +462,12 @@ impl Conn {
         }
         let values = match self.inner.send_packed_commands(pipe, 0, n).await {
             Ok(v) => v,
-            Err(e) => return Err(map_client_error("pipeline", e)),
+            Err(e) => return Err(self.noted(map_client_error("pipeline", e))),
         };
         Ok(values
             .into_iter()
             .map(|v| match v {
-                Value::ServerError(e) => Err(Error::from_server("pipeline", e.code(), e.details())),
+                Value::ServerError(e) => Err(self.noted(Error::from_server("pipeline", e.code(), e.details()))),
                 v => Ok(v),
             })
             .collect())

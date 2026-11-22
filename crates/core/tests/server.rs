@@ -574,6 +574,57 @@ async fn the_console_runs_typed_commands_and_the_index_follows() {
     assert_eq!(dbsize(&mut conn).await, 1);
 }
 
+/// A user who may `DEL` but not `UNLINK`: the delete goes through as `DEL`,
+/// the denial is remembered, and the capabilities stop offering `UNLINK`.
+#[tokio::test]
+async fn a_denied_unlink_falls_back_to_del_and_is_remembered() {
+    use keyfold_core::mutate::{self, Op};
+    let Some((url, _guard)) = test_url().await else { return };
+    let (_manager, mut conn) = connect(&url).await;
+    conn.raw(&testing::flushdb()).await.unwrap();
+    conn.raw(&testing::set(b"acl:a", b"v")).await.unwrap();
+    conn.raw(&testing::set(b"acl:b", b"v")).await.unwrap();
+    conn.raw(&testing::acl_setuser(
+        "keyfold-test-deleter",
+        &["reset", "on", ">secret", "~acl:a", "~acl:b", "+@all", "-unlink"],
+    ))
+    .await
+    .unwrap();
+
+    let mut profile = Profile::from_url(&url).unwrap();
+    profile.username = Some("keyfold-test-deleter".into());
+    profile.password = Some("secret".into());
+    let manager = ConnectionManager::new(profile);
+    let outcome = async {
+        let mut c = manager.connect().await?;
+        let caps = keyfold_core::capability::probe(&mut c, manager.profile().db).await?;
+        // COMMAND INFO describes UNLINK whoever asks: the probe cannot know
+        assert!(caps.has("unlink"));
+        let done = mutate::apply(&mut c, b"acl:a", &Op::Delete, caps.has("unlink")).await?;
+        assert_eq!(done.removed, vec![b"acl:a".to_vec()]);
+        assert_eq!(done.reply, "1");
+        assert!(!caps.has("unlink"), "the denial reaches the capabilities");
+        assert_eq!(caps.command("unlink"), keyfold_core::capability::CommandState::Denied);
+        assert_eq!(manager.denials().list(), vec!["unlink".to_string()]);
+        // a second connection of the same session knows it too
+        let c2 = manager.connect().await?;
+        assert!(c2.denials().contains("unlink"));
+        // a key outside the user's pattern is refused, which is no verdict on the command
+        let err = c.raw(&commands::ttl(b"other")).await.unwrap_err();
+        assert!(err.is_denied(), "{err:?}");
+        assert_eq!(err.denied_command(), None, "{err:?}");
+        assert_eq!(manager.denials().list(), vec!["unlink".to_string()]);
+        keyfold_core::Result::Ok(())
+    }
+    .await;
+    conn.raw(&testing::acl_deluser("keyfold-test-deleter")).await.unwrap();
+    outcome.unwrap();
+    match conn.raw(&commands::dbsize()).await.unwrap() {
+        Value::Int(1) => {}
+        other => panic!("{other:?}"),
+    }
+}
+
 /// A user whose ACL allows little: a denied command is the reply, and
 /// without `COMMAND` the console still judges by name and counts the rest
 /// as writes.

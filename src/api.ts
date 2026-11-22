@@ -69,6 +69,8 @@ export interface Connection {
   /// Summed over the primaries of a cluster.
   dbsize: number | null;
   usedMemory: number | null;
+  /// Commands the server's ACL refused in this session, e.g. `unlink`, `memory|usage`.
+  denied: string[];
   index: IndexInfo;
   indexMode: IndexMode;
   /// The mode was chosen by the database's size, not by the profile.

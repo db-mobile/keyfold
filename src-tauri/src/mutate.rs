@@ -258,6 +258,12 @@ pub async fn mutate(
         }
         routed!(router, Hop::key(k), |c| mutate::apply(c, k, &op, use_unlink).await).map_err(|e| e.to_string())?
     };
+    // a refused UNLINK was done again as DEL, and is remembered as denied
+    let command = if matches!(op, Op::Delete) && !session.caps.has("unlink") {
+        "DEL"
+    } else {
+        command
+    };
     let exists = outcome.exists();
     let ttl = outcome.ttl;
     let reply = outcome.reply.clone();

@@ -110,6 +110,9 @@ pub struct ConnectionDto {
     /// Summed over the primaries of a cluster.
     pub dbsize: Option<u64>,
     pub used_memory: Option<u64>,
+    /// Commands the server's ACL refused in this session (`NOPERM`), in
+    /// the notation of `COMMAND INFO` (`unlink`, `memory|usage`).
+    pub denied: Vec<String>,
     pub index: IndexInfo,
     /// `full`, `onDemand` or `none`
     pub index_mode: &'static str,
@@ -569,6 +572,7 @@ impl Session {
             db: self.caps.db,
             dbsize,
             used_memory: self.caps.used_memory,
+            denied: self.caps.denied.list(),
             index: self.index_info()?,
             index_mode: self.index_mode.as_str(),
             index_mode_auto: self.index_mode_auto,

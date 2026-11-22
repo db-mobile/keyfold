@@ -5,7 +5,8 @@
 //! comes from `INFO server`, availability from `COMMAND INFO`, and denial by
 //! ACL is learned from the first `NOPERM` and remembered.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, Mutex};
 
 use redis::Value;
 
@@ -81,6 +82,34 @@ impl ReplicaInfo {
     }
 }
 
+/// Commands the server's ACL refused while the session ran, learned from
+/// `NOPERM` replies. Shared: every connection of a [`ConnectionManager`]
+/// writes to the same set, and the [`Capabilities`] probed through one of
+/// them read it.
+///
+/// [`ConnectionManager`]: crate::connection::ConnectionManager
+#[derive(Debug, Clone, Default)]
+pub struct Denials(Arc<Mutex<BTreeSet<String>>>);
+
+impl Denials {
+    /// `name` in the pipe notation of [`PROBED_COMMANDS`], any case.
+    pub fn mark(&self, name: &str) {
+        if let Ok(mut set) = self.0.lock()
+            && set.insert(name.to_ascii_lowercase())
+        {
+            tracing::warn!(command = name, "denied by the server's ACL; remembered for this session");
+        }
+    }
+
+    pub fn contains(&self, name: &str) -> bool {
+        self.0.lock().map(|set| set.contains(name)).unwrap_or(false)
+    }
+
+    pub fn list(&self) -> Vec<String> {
+        self.0.lock().map(|set| set.iter().cloned().collect()).unwrap_or_default()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Capabilities {
     pub server: ServerKind,
@@ -93,6 +122,8 @@ pub struct Capabilities {
     pub dbsize: Option<u64>,
     pub used_memory: Option<u64>,
     pub commands: BTreeMap<String, CommandState>,
+    /// What the ACL refused since the probe.
+    pub denied: Denials,
     /// Replicas of a standalone primary, from `INFO replication`.
     pub replicas: Vec<ReplicaInfo>,
     /// The primary of a standalone replica.
@@ -101,6 +132,9 @@ pub struct Capabilities {
 
 impl Capabilities {
     pub fn command(&self, name: &str) -> CommandState {
+        if self.denied.contains(name) {
+            return CommandState::Denied;
+        }
         self.commands.get(name).copied().unwrap_or(CommandState::Unknown)
     }
 
@@ -108,9 +142,10 @@ impl Capabilities {
         matches!(self.command(name), CommandState::Available | CommandState::Unknown)
     }
 
-    /// Remember a `NOPERM` so the UI stops offering the feature.
-    pub fn mark_denied(&mut self, name: &str) {
-        self.commands.insert(name.to_ascii_lowercase(), CommandState::Denied);
+    /// Remember a `NOPERM` so the feature is no longer offered or tried.
+    /// The connections do this themselves for every denied command.
+    pub fn mark_denied(&self, name: &str) {
+        self.denied.mark(name);
     }
 
     pub fn is_replica(&self) -> bool {
@@ -196,6 +231,7 @@ pub async fn probe(conn: &mut Conn, db: i64) -> Result<Capabilities> {
         dbsize,
         used_memory,
         commands: cmds,
+        denied: conn.denials().clone(),
         replicas,
         primary,
     })

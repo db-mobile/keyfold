@@ -147,8 +147,12 @@ impl Outcome {
 pub async fn apply(conn: &mut Conn, key: &[u8], op: &Op, use_unlink: bool) -> Result<Outcome> {
     op.validate()?;
     if let Op::Delete = op {
-        let cmd = if use_unlink { write::unlink(&[key]) } else { write::del(&[key]) };
-        let v = conn.raw(&cmd).await?;
+        let v = match conn.raw(&if use_unlink { write::unlink(&[key]) } else { write::del(&[key]) }).await {
+            // an ACL without UNLINK often still has DEL; the connection
+            // has remembered the denial, so the next delete starts there
+            Err(e) if use_unlink && e.denied_command().as_deref() == Some("unlink") => conn.raw(&write::del(&[key])).await?,
+            other => other?,
+        };
         return Ok(Outcome {
             removed: vec![key.to_vec()],
             added: Vec::new(),
@@ -260,7 +264,10 @@ impl Error {
     /// Errors are not `Clone`; pipelines hand back borrowed ones.
     fn clone_shallow(&self) -> Error {
         match self {
-            Error::Denied { command } => Error::Denied { command: command.clone() },
+            Error::Denied { command, detail } => Error::Denied {
+                command: command.clone(),
+                detail: detail.clone(),
+            },
             Error::Server { code, detail } => Error::Server {
                 code: code.clone(),
                 detail: detail.clone(),
@@ -522,7 +529,8 @@ async fn run_delete(
 
         // The server first; the index only once the server confirmed.
         let refs: Vec<&[u8]> = names.iter().map(Vec::as_slice).collect();
-        match delete_batch(&mut router, &refs, config.use_unlink).await {
+        let use_unlink = config.use_unlink && !router.manager().denials().contains("unlink");
+        match delete_batch(&mut router, &refs, use_unlink).await {
             Ok((deleted, calls)) => {
                 progress.deleted += deleted;
                 progress.calls += calls;
@@ -572,6 +580,18 @@ async fn run_delete(
 /// (multi-key commands across slots are refused with `CROSSSLOT`).
 /// Returns the keys the server reported deleted and the round trips used.
 async fn delete_batch(router: &mut Router, names: &[&[u8]], use_unlink: bool) -> Result<(u64, u64)> {
+    if use_unlink {
+        return match delete_batch_with(router, names, true).await {
+            // nothing was deleted by a refused UNLINK (on a cluster every
+            // node refuses alike), so the whole batch goes again as DEL
+            Err(e) if e.denied_command().as_deref() == Some("unlink") => delete_batch_with(router, names, false).await,
+            other => other,
+        };
+    }
+    delete_batch_with(router, names, false).await
+}
+
+async fn delete_batch_with(router: &mut Router, names: &[&[u8]], use_unlink: bool) -> Result<(u64, u64)> {
     let name = if use_unlink { "UNLINK" } else { "DEL" };
     let one = |keys: &[&[u8]]| if use_unlink { write::unlink(keys) } else { write::del(keys) };
     if !router.is_cluster() {

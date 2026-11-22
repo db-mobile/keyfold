@@ -764,7 +764,10 @@ pub fn render(v: &Value, limits: &Limits) -> Rendered {
 pub fn render_error(e: &Error) -> String {
     match e {
         Error::Server { code, detail } => format!("(error) {code} {detail}").trim_end().to_string(),
-        Error::Denied { command } => format!("(error) NOPERM the server's ACL does not allow {command} for this user"),
+        Error::Denied { command, detail } if detail.is_empty() => {
+            format!("(error) NOPERM the server's ACL does not allow {command} for this user")
+        }
+        Error::Denied { detail, .. } => format!("(error) NOPERM {detail}"),
         other => format!("(error) {other}"),
     }
 }

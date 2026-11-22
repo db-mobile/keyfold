@@ -41,6 +41,9 @@ export default function Header(props: HeaderProps) {
                 </div>
               </Show>
               <Property name="Keys" value={m.keysLine()} />
+              <Show when={m.hasDenied()}>
+                <Property name="Denied by ACL" value={m.deniedLine()} title="Commands this user may not run. Keyfold works without them where it can." />
+              </Show>
               <Show when={m.hasServerMemory()}>
                 <Property name="Server memory" value={m.serverMemory()} />
               </Show>

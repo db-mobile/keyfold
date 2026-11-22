@@ -131,6 +131,13 @@ IPC endpoint only. `devCsp` is the same plus inline styles and the Vite
 websocket. Styles set from code go through the CSSOM (Solid's object
 `style`), which the policy does not restrict.
 
+A command the server's ACL refuses (`NOPERM` naming the command) is
+remembered for the session by the connection that saw it
+(`capability::Denials`, shared through the `ConnectionManager`), so
+`Capabilities::has` is false from then on. A refused `UNLINK` is repeated
+as `DEL`. The header popover lists the denied commands. A denial that is
+about a key or a channel is not a verdict on the command.
+
 More smoke-test aids: `KEYFOLD_AUTOSORT=<name|count|numeric>` changes the
 tree sort after `KEYFOLD_AUTOEXPAND` and logs the row count before and
 after; every load of the value panel is logged with its reason (`selected`,

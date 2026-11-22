@@ -11,9 +11,11 @@ pub enum Error {
     #[error("server replied {code}: {detail}")]
     Server { code: String, detail: String },
 
-    /// The ACL on the server denies this command (NOPERM).
-    #[error("command denied by server ACL: {command}")]
-    Denied { command: String },
+    /// The ACL on the server said no (`NOPERM`). `command` is the command
+    /// that ran into it; `detail` is the server's text, which says whether
+    /// the command itself, a key or a channel was refused.
+    #[error("{}", denied_text(command, detail))]
+    Denied { command: String, detail: String },
 
     /// The index database failed.
     #[error("index: {0}")]
@@ -57,6 +59,7 @@ impl Error {
         if code == "NOPERM" {
             return Error::Denied {
                 command: command.to_string(),
+                detail: detail.unwrap_or("").to_string(),
             };
         }
         Error::Server {
@@ -67,6 +70,24 @@ impl Error {
 
     pub fn is_denied(&self) -> bool {
         matches!(self, Error::Denied { .. })
+    }
+
+    /// The command the ACL does not allow at all, in the lowercase pipe
+    /// notation of `COMMAND INFO` (`unlink`, `config|get`). `None` when
+    /// the denial is about a key or a channel, which says nothing about
+    /// the command, or when the command is not known (a pipeline reply
+    /// whose text does not name it).
+    pub fn denied_command(&self) -> Option<String> {
+        let Error::Denied { command, detail } = self else { return None };
+        // "... has no permissions to run the 'config|get' command"
+        if let Some(rest) = detail.split_once("to run the '").map(|(_, r)| r) {
+            return rest.split_once('\'').map(|(name, _)| name.to_ascii_lowercase());
+        }
+        let lower = detail.to_ascii_lowercase();
+        if lower.contains("key") || lower.contains("channel") || command == "pipeline" || command == "?" {
+            return None;
+        }
+        Some(command.to_ascii_lowercase())
     }
 
     /// A cluster redirect (`MOVED` or `ASK`): the slot and the node that
@@ -101,6 +122,14 @@ pub struct Redirect {
     pub port: u16,
 }
 
+fn denied_text(command: &str, detail: &str) -> String {
+    if detail.is_empty() {
+        format!("command denied by server ACL: {command}")
+    } else {
+        format!("command denied by server ACL: {command} ({detail})")
+    }
+}
+
 fn host_key_text(k: &crate::tunnel::HostKey) -> String {
     if k.changed {
         format!(
@@ -115,6 +144,41 @@ fn host_key_text(k: &crate::tunnel::HostKey) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_denial_names_the_command_only_when_the_command_is_refused() {
+        let run = |cmd: &str, detail: &str| Error::from_server(cmd, "NOPERM", Some(detail)).denied_command();
+        // Valkey and Redis 7+, a top-level command and a subcommand
+        assert_eq!(
+            run("UNLINK", "User browser has no permissions to run the 'unlink' command"),
+            Some("unlink".into())
+        );
+        assert_eq!(
+            run("CONFIG", "User browser has no permissions to run the 'config|get' command"),
+            Some("config|get".into())
+        );
+        // Redis 6 and 7.0
+        assert_eq!(
+            run("pipeline", "this user has no permissions to run the 'memory|usage' command"),
+            Some("memory|usage".into())
+        );
+        assert_eq!(
+            run("GET", "this user has no permissions to run the 'get' command or its subcommand"),
+            Some("get".into())
+        );
+        // a key or a channel the user may not touch says nothing about the command
+        assert_eq!(run("GET", "No permissions to access a key"), None);
+        assert_eq!(
+            run("GET", "this user has no permissions to access one of the keys used as arguments"),
+            None
+        );
+        assert_eq!(run("PUBLISH", "No permissions to access a channel"), None);
+        // without a text the caller's name is all there is; a pipeline has none
+        assert_eq!(Error::from_server("UNLINK", "NOPERM", None).denied_command(), Some("unlink".into()));
+        assert_eq!(Error::from_server("pipeline", "NOPERM", None).denied_command(), None);
+        assert_eq!(Error::from_server("GET", "ERR", Some("x")).denied_command(), None);
+        assert!(Error::from_server("GET", "NOPERM", Some("No permissions to access a key")).is_denied());
+    }
 
     #[test]
     fn redirects_are_parsed() {

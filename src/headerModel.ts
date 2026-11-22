@@ -169,6 +169,8 @@ export function createHeaderModel(props: HeaderProps) {
     hasNodes: () => props.conn.nodes.length > 1,
     nodeList: () => props.conn.nodes.map((n) => `${n.addr} ${n.role}${n.online ? "" : " (offline)"}`).join("\n"),
     keysLine: () => (props.conn.dbsize === null ? "DBSIZE denied" : fmtCount(props.conn.dbsize)),
+    hasDenied: () => props.conn.denied.length > 0,
+    deniedLine: () => props.conn.denied.map((c) => c.replace("|", " ").toUpperCase()).join(", "),
     hasServerMemory: () => props.conn.usedMemory !== null,
     serverMemory: () => fmtBytes(props.conn.usedMemory),
     memLine: (s: MemoryStats) => `Backend ${fmtBytes(s.backendRss)}, webview ${fmtBytes(s.webviewRss)}`,

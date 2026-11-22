@@ -119,8 +119,12 @@ that left it open and what it would take.
   command help, a persisted history, cancelling a slow command.
 - A reply still crosses from the server to the backend whole before it is
   cut for display: `SMEMBERS` on a set of millions costs backend memory.
-- `Capabilities::mark_denied` is never called (found while building the
-  console); a denied command is only known from its error.
+- A command the ACL refuses is remembered for the session since
+  2026-11-22 (`Denials`, filled by every connection), shown in the header
+  popover, and a refused `UNLINK` is done again as `DEL`. Still open: the
+  UI does not hide or grey out actions whose command is denied, and
+  `MEMORY USAGE` is still sent in the metadata pipelines after a denial
+  (its reply is ignored).
 
 ## Live updates (CONCEPT 7)
 
