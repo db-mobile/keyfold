@@ -536,6 +536,7 @@ export interface StartupOptions {
   autoconnect: string | null;
   tag: string;
   autoexpand: string | null;
+  autosort: string | null;
   autoselect: KeyRef[];
   autosearch: string[];
   autofts: boolean;

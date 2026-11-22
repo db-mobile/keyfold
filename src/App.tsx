@@ -57,6 +57,7 @@ export default function App() {
                             selected={m.selected()}
                             onSelect={m.select}
                             autoexpand={m.autoexpand()}
+                            autosort={m.autosort()}
                             version={m.version()}
                             onSearch={m.setQuery}
                             onDeletePattern={m.setDeleteTarget}

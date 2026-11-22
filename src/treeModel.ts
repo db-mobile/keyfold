@@ -48,6 +48,8 @@ export interface TreeProps {
   onSelect: (key: KeyRef) => void;
   /// Development aid: expand this prefix (and its first fold and bucket) once the root is loaded.
   autoexpand?: string | null;
+  /// Development aid: change the sort to this once the automatic expand is through.
+  autosort?: string | null;
   /// Bumped when the index changed behind the tree's back (a write).
   version: number;
   onSearch: (query: string) => void;
@@ -75,6 +77,8 @@ interface Branch {
   filter: ChildFilter | null;
   /// Numeric sort for "show as list" of numeric ids, else the global sort.
   sort: TreeSort | null;
+  /// The node branch a bucket, list or filter branch belongs to; null for a node's own branch.
+  parent: string | null;
 }
 
 export type FlatRow =
@@ -111,7 +115,7 @@ export function createTreeModel(props: TreeProps) {
   const [asked, setAsked] = createStore<Record<string, "wanted" | "declined" | undefined>>({});
   const onDemand = () => props.conn.indexMode === "onDemand";
 
-  const emptyBranch = (prefix: string, raw: string | null, filter: ChildFilter | null = null, sortOverride: TreeSort | null = null): Branch => ({
+  const emptyBranch = (prefix: string, raw: string | null, filter: ChildFilter | null = null, sortOverride: TreeSort | null = null, parent: string | null = null): Branch => ({
     rows: [],
     expanded: false,
     complete: false,
@@ -120,6 +124,7 @@ export function createTreeModel(props: TreeProps) {
     raw,
     filter,
     sort: sortOverride,
+    parent,
   });
 
   const loadWindow = async (key: string, after: TreeAfter | null) => {
@@ -249,7 +254,9 @@ export function createTreeModel(props: TreeProps) {
     else void loadWindow(key, null);
   };
 
-  const subKey = (key: string, suffix: string) => `${key}|${suffix}`;
+  /// A sub-branch id. NUL separates it from the node's id: `|` is one of the delimiters the backend
+  /// detects, so a node prefix such as `a|f0` is ordinary, while one holding NUL is not.
+  const subKey = (key: string, suffix: string) => `${key}\u0000${suffix}`;
 
   const toggleSub = (key: string, suffix: string, filter: ChildFilter | null, sortOverride: TreeSort | null) => {
     const k = subKey(key, suffix);
@@ -260,7 +267,7 @@ export function createTreeModel(props: TreeProps) {
       return;
     }
     if (!b) {
-      setBranches(k, { ...emptyBranch(parent.prefix, parent.raw, filter, sortOverride), expanded: true });
+      setBranches(k, { ...emptyBranch(parent.prefix, parent.raw, filter, sortOverride, key), expanded: true });
       void loadWindow(k, null);
     } else {
       setBranches(k, "expanded", true);
@@ -278,7 +285,7 @@ export function createTreeModel(props: TreeProps) {
       setBranches(qk, undefined);
       return;
     }
-    setBranches(qk, { ...emptyBranch(parent.prefix, parent.raw, filter, null), expanded: true });
+    setBranches(qk, { ...emptyBranch(parent.prefix, parent.raw, filter, null, key), expanded: true });
     void loadWindow(qk, null);
     void api
       .treeCount(props.conn.id, parent.prefix, parent.raw, filter!)
@@ -347,7 +354,7 @@ export function createTreeModel(props: TreeProps) {
         return loadWindow("", null);
       })
       .then(() => {
-        if (props.autoexpand) return autoExpand(props.autoexpand);
+        if (props.autoexpand) return autoExpand(props.autoexpand).then(() => (props.autosort ? autoSort(props.autosort) : undefined));
       })
       .catch((e) => console.error("tree_root", e));
 
@@ -382,6 +389,16 @@ export function createTreeModel(props: TreeProps) {
     void api.log("info", `autoexpand: ${prefix} folded as ${info.folds.map((f) => `${f.label} (${f.members})`).join(", ")}; ${info.evidence}; literals ${info.literals.length}; computed ${info.computedMs.toFixed(0)} ms; summary ${info.folds[0].summary.slice(0, 4).map((e) => `${e.segment} ${(e.coverage * 100).toFixed(1)}%`).join(", ")}; buckets ${info.folds[0].buckets.length}`);
   };
 
+  /// Development aid: change the sort once and log the rows before and after. A folded level must keep its row count.
+  const autoSort = async (value: string) => {
+    const counts = () => `${flat().length} rows, ${Object.values(branches).filter((b) => b?.loading).length} loading`;
+    await new Promise((r) => setTimeout(r, 1500));
+    void api.log("info", `autosort: before ${sort()} -> ${value}: ${counts()}`);
+    setSort(value as TreeSort);
+    await new Promise((r) => setTimeout(r, 1500));
+    void api.log("info", `autosort: after ${value}: ${counts()}`);
+  };
+
   onMount(() => {
     void loadRoot();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -403,7 +420,9 @@ export function createTreeModel(props: TreeProps) {
       if (prev === undefined) return;
       for (const key of Object.keys(branches)) {
         const b = branches[key];
-        if (!b || b.sort || (folds[key] && folds[key] !== "loading" && (folds[key] as FoldInfo).folded && !key.includes("|"))) continue;
+        const fold = b?.parent === null ? folds[key] : undefined;
+        // a folded node branch holds the fold's literals, not a window: nothing to reload
+        if (!b || b.sort || (fold && fold !== "loading" && fold.folded)) continue;
         setBranches(key, { ...b, rows: [], complete: false });
         if (b.expanded) void loadWindow(key, null);
       }

@@ -28,6 +28,9 @@ that left it open and what it would take.
   configurable cache root; user-only permissions on index files.
 - A quick connect by URL stores nothing and keeps the `host_port_db` index
   folder; nothing in the UI lists or clears those folders.
+- The delimiter of an index is detected once and kept: a database whose
+  keys were replaced by ones with another delimiter shows a flat tree
+  until its index is cleared (seen on 2026-11-22 with a test database).
 - A stored connection whose password is missing from the keychain can only
   be repaired in the editor; there is no "ask once for this session".
 - Stored on the profile today: tag, default db, TLS flags, scan profile and
@@ -77,9 +80,6 @@ that left it open and what it would take.
   bytes since 2026-11-22. Still open: typing such a name or pattern (new
   key, rename target, jump palette, search box, fold filter box; all take
   text literally), and the value panel's field filter, which is text.
-- Branch ids in `treeModel.ts` are joined strings (`prefix|f0|b1`), and the
-  sort-change effect tells a sub-branch by a `|` in the id, so a prefix
-  that contains `|` is misread there (step four).
 
 ## Flat list and search (CONCEPT 5.2, 5.3)
 

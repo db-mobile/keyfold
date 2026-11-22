@@ -998,6 +998,9 @@ struct StartupOptions {
     /// `KEYFOLD_AUTOEXPAND=<prefix>` expands that tree level after the
     /// root loads, which exercises folding in a headless run.
     autoexpand: Option<String>,
+    /// `KEYFOLD_AUTOSORT=<name|count|numeric>` changes the tree sort once
+    /// the automatic expand is through and logs the rows before and after.
+    autosort: Option<String>,
     /// `KEYFOLD_AUTOSELECT=<key>[,<key>...]` selects these keys in turn,
     /// two seconds apart, which exercises the value panel headlessly.
     /// `KEYFOLD_AUTOSELECT_HEX=<hex>[,<hex>...]` adds keys by their exact
@@ -1046,6 +1049,7 @@ fn startup_options() -> StartupOptions {
         autoconnect: std::env::var("KEYFOLD_AUTOCONNECT").ok().filter(|s| !s.is_empty()),
         tag: std::env::var("KEYFOLD_AUTOCONNECT_TAG").unwrap_or_else(|_| "dev".into()),
         autoexpand: std::env::var("KEYFOLD_AUTOEXPAND").ok().filter(|s| !s.is_empty()),
+        autosort: std::env::var("KEYFOLD_AUTOSORT").ok().filter(|s| !s.is_empty()),
         autoselect: std::env::var("KEYFOLD_AUTOSELECT")
             .ok()
             .map(|s| {

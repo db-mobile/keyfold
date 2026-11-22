@@ -26,6 +26,7 @@ export function createAppModel() {
   const [error, setError] = createSignal<string | null>(null);
   const [selected, setSelected] = createSignal<KeyRef | null>(null);
   const [autoexpand, setAutoexpand] = createSignal<string | null>(null);
+  const [autosort, setAutosort] = createSignal<string | null>(null);
   const [query, setQuery] = createSignal("");
   const [view, setView] = createSignal<NavView>(storedView());
   const changeView = (next: NavView) => {
@@ -106,6 +107,7 @@ export function createAppModel() {
     onCleanup(() => document.removeEventListener("keydown", onKey));
     const opts = await api.startupOptions().catch(() => null);
     setAutoexpand(opts?.autoexpand ?? null);
+    setAutosort(opts?.autosort ?? null);
     if (opts?.autoprofile) {
       // smoke test of the connection manager: store, list, connect, delete
       try {
@@ -385,6 +387,7 @@ export function createAppModel() {
     error,
     selected,
     autoexpand,
+    autosort,
     query,
     view,
     palette,
