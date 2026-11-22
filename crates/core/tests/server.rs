@@ -1500,10 +1500,14 @@ async fn scans_prefer_a_reachable_replica() {
 }
 
 /// The normal profile samples `INFO stats` and `SLOWLOG LEN` between
-/// calls; on an idle test server it never backs off and completes.
+/// calls and completes, on every server. The samples are taken every 10 ms
+/// here, so that a scan this small takes some at all. How busy the server
+/// looks is not the test's to decide (the fill that just ran, a slow
+/// machine): the scan may back off, within the monitor's bounds. What
+/// load makes it back off is tested on the monitor itself, in `scan.rs`.
 #[tokio::test]
 async fn normal_profile_completes_with_load_sampling() {
-    use keyfold_core::scan::ScanProfile;
+    use keyfold_core::scan::{LoadMonitor, ScanProfile};
     let Some((url, _guard)) = test_url().await else { return };
     let (manager, mut conn) = connect(&url).await;
     fill(&mut conn, &sample_keys(3000)).await;
@@ -1515,12 +1519,13 @@ async fn normal_profile_completes_with_load_sampling() {
             max: 100,
             ..Default::default()
         },
+        load_sample_every: Duration::from_millis(10),
         ..ScanConfig::default()
     };
     let outcome = scan::start(manager.connect().await.unwrap(), index, config).wait().await.unwrap();
     assert_eq!(outcome.progress.phase, ScanPhase::Complete);
     assert_eq!(outcome.index.key_count(), 3000);
-    assert_eq!(outcome.progress.backoff, 0);
+    assert!(outcome.progress.backoff <= LoadMonitor::MAX_LEVEL, "{:?}", outcome.progress);
     // COUNT is a hint: a call returns whole hash buckets, so 3000 keys at
     // COUNT 100 take about 30 calls, not at least 30
     assert!(outcome.progress.calls >= 20, "{:?}", outcome.progress);

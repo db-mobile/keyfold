@@ -258,6 +258,9 @@ pub struct ScanConfig {
     /// establishes nothing, is not resumed.
     pub sample: Option<u64>,
     pub tuning: CountTuning,
+    /// How often the normal profile samples the server's load. Tests
+    /// shorten it so that a small scan samples at all.
+    pub load_sample_every: Duration,
     /// Batches that may wait for the writer before SCAN calls pause.
     pub queue_depth: usize,
     /// Force a delimiter instead of detecting one from the first keys.
@@ -284,6 +287,7 @@ impl Default for ScanConfig {
             subtree: None,
             sample: None,
             tuning: CountTuning::default(),
+            load_sample_every: LoadMonitor::SAMPLE_EVERY,
             queue_depth: 8,
             delimiter: None,
             delimiter_sample: 10_000,
@@ -1010,7 +1014,7 @@ impl NodeTask {
             // The normal profile watches the server's load.
             let mut gap = base_gap;
             if let Some(m) = &mut monitor {
-                if last_sample.elapsed() >= LoadMonitor::SAMPLE_EVERY {
+                if last_sample.elapsed() >= self.config.load_sample_every {
                     let (ops, slowlog) = sample_load(&mut self.conn).await;
                     let own_rate = (self.progress.calls - calls_at_sample) as f64 / last_sample.elapsed().as_secs_f64().max(0.001);
                     let level = m.observe(ops, own_rate, slowlog);
