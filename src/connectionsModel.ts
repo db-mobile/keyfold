@@ -66,6 +66,17 @@ export function createConnectionsModel(props: ConnectionsProps) {
       .catch((e) => setListError(String(e)));
   onMount(reload);
 
+  /// Run an action on the list, then read the list again. Why the action
+  /// failed stays on screen: the reload would otherwise clear it.
+  const change = async (action: Promise<void>) => {
+    const failed = await action.then(
+      () => null,
+      (e) => String(e),
+    );
+    await reload();
+    if (failed !== null) setListError(failed);
+  };
+
   const connect = async (p: Pick<StoredProfile, "id">) => {
     if (busy()) return;
     setBusy(p.id);
@@ -86,8 +97,7 @@ export function createConnectionsModel(props: ConnectionsProps) {
       danger: true,
     });
     if (!ok) return;
-    await api.profileDelete(p.id).catch((e) => setListError(String(e)));
-    await reload();
+    await change(api.profileDelete(p.id));
   };
 
   const clearIndex = async (p: StoredProfile) => {
@@ -97,8 +107,7 @@ export function createConnectionsModel(props: ConnectionsProps) {
       confirm: "Clear index",
     });
     if (!ok) return;
-    await api.profileClearIndex(p.id).catch((e) => setListError(String(e)));
-    await reload();
+    await change(api.profileClearIndex(p.id));
   };
 
   const clearOrphan = async (o: OrphanIndex) => {
@@ -108,8 +117,7 @@ export function createConnectionsModel(props: ConnectionsProps) {
       confirm: "Clear index",
     });
     if (!ok) return;
-    await api.indexOrphanClear(o.name).catch((e) => setListError(String(e)));
-    await reload();
+    await change(api.indexOrphanClear(o.name));
   };
 
   return {
