@@ -117,6 +117,13 @@ back to the stored connection. "Quick connect by URL" stores nothing.
 `KEYFOLD_AUTOPROFILE=<url>` stores, connects, lists and deletes a
 connection, for smoke tests.
 
+The webview runs under a content security policy
+(`src-tauri/tauri.conf.json`): scripts and styles from the app itself only,
+images from the app or `data:` (the icons Vite inlines), connections to the
+IPC endpoint only. `devCsp` is the same plus inline styles and the Vite
+websocket. Styles set from code go through the CSSOM (Solid's object
+`style`), which the policy does not restrict.
+
 More smoke-test aids: `KEYFOLD_AUTOSORT=<name|count|numeric>` changes the
 tree sort after `KEYFOLD_AUTOEXPAND` and logs the row count before and
 after; every load of the value panel is logged with its reason (`selected`,
