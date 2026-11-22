@@ -1,6 +1,6 @@
 {
   "name": "keyfold",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keyfold - A fast desktop client for Redis and Valkey that folds millions of keys into a structure you can read",
   "license": "MIT",
   "author": "Dennis Blümer <dennis.bluemer@ducart.de>",
