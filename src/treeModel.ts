@@ -152,6 +152,10 @@ export function createTreeModel(props: TreeProps) {
     const cur = branches[key];
     if (!cur) return;
     if (cur.rows.length === 0 && key !== "") return;
+    // a folded node branch holds the fold's literals, not a window: a plain
+    // window would list the folded ids beside their fold
+    const fold = cur.parent === null ? folds[key] : undefined;
+    if (fold && fold !== "loading" && fold.folded) return;
     let after: TreeAfter | null = null;
     let fresh: TreeNode[] = [];
     const windows = Math.max(1, Math.ceil(cur.rows.length / WINDOW));
@@ -244,7 +248,12 @@ export function createTreeModel(props: TreeProps) {
     if (b?.expanded) {
       setBranches(key, "expanded", false);
       // collapsing releases the fold decision (hysteresis ends here)
-      if (n.children < FOLD_AT) setFolds(key, undefined);
+      if (n.children < FOLD_AT) {
+        const fold = folds[key];
+        setFolds(key, undefined);
+        // the rows of a folded level were its literals only: opening it again loads the level
+        if (fold && fold !== "loading" && fold.folded) setBranches(key, { ...branches[key]!, rows: [], complete: false });
+      }
       return;
     }
     if (!b) setBranches(key, { ...emptyBranch(n.prefix, n.prefixRaw), expanded: true });
